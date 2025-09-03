@@ -1,8 +1,12 @@
 import React from 'react';
-import { Menu, Bot, Bell } from 'lucide-react';
+import { Menu, Bot, Bell, LogOut, User } from 'lucide-react';
+import { useAuth } from '../../contexts/AuthContext';
 
-const Header = ({ title, onMenuToggle, onAIChatToggle, notifications, isLargeScreen }) => (
-  <div className="bg-green-600 text-white p-4 rounded-b-lg shadow-lg">
+const Header = ({ title, onMenuToggle, onAIChatToggle, notifications, isLargeScreen, onAuthToggle }) => {
+  const { user, logout } = useAuth();
+  
+  return (
+    <div className="bg-green-600 text-white p-4 rounded-b-lg shadow-lg">
     <div className="flex justify-between items-center">
       <div className="flex items-center space-x-3">
         {!isLargeScreen && (
@@ -38,9 +42,34 @@ const Header = ({ title, onMenuToggle, onAIChatToggle, notifications, isLargeScr
             </span>
           )}
         </div>
+        
+        {user ? (
+          <div className="flex items-center space-x-2">
+            <div className="text-right">
+              <div className="text-sm font-medium">{user.firstName} {user.lastName}</div>
+              <div className="text-xs text-green-100">{user.userRole}</div>
+            </div>
+            <button 
+              onClick={logout}
+              className="p-1 hover:bg-green-700 rounded"
+              title="Logout"
+            >
+              <LogOut size={20} className="lg:w-6 lg:h-6" />
+            </button>
+          </div>
+        ) : (
+          <button 
+            onClick={onAuthToggle}
+            className="flex items-center space-x-2 px-3 py-1 bg-white bg-opacity-20 rounded-lg hover:bg-opacity-30 transition-colors"
+          >
+            <User size={16} />
+            <span className="text-sm">Sign In</span>
+          </button>
+        )}
       </div>
     </div>
   </div>
-);
+  );
+};
 
 export default Header;

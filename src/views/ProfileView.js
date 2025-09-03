@@ -1,7 +1,9 @@
 import React, { useState } from 'react';
 import { User } from 'lucide-react';
+import { useAuth } from '../contexts/AuthContext';
 
 const ProfileView = ({ userPoints }) => {
+  const { user } = useAuth();
   const [selectedPeriod, setSelectedPeriod] = useState('today');
   
   const impactData = {
@@ -23,10 +25,12 @@ const ProfileView = ({ userPoints }) => {
               <User size={40} className="text-green-600 lg:w-14 lg:h-14" />
             </div>
             <h2 className="font-semibold text-gray-800 text-xl lg:text-2xl">
-              Roshni L.
+              {user?.firstName} {user?.lastName}
             </h2>
-            <p className="text-gray-600 text-sm lg:text-lg">Kampala, Uganda</p>
-            <p className="text-blue-600 mt-1 text-sm lg:text-lg">Makerere University</p>
+            <p className="text-gray-600 text-sm lg:text-lg">{user?.location}</p>
+            {user?.businessName && (
+              <p className="text-blue-600 mt-1 text-sm lg:text-lg">{user.businessName}</p>
+            )}
             <div className="flex items-center justify-center space-x-2 mt-2">
               <span className="text-green-600 bg-green-100 px-3 py-1 rounded-full text-sm lg:text-base lg:px-4 lg:py-2">
                 Active Community Member

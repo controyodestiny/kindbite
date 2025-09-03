@@ -3,10 +3,9 @@ import {
   ChefHat, Home, Building, ShoppingBag, Gift, Stethoscope, 
   UserCheck, Coins, User, X, MessageCircle, Calendar, Users
 } from 'lucide-react';
+import { useAuth } from '../../contexts/AuthContext';
 
 const Sidebar = ({ 
-  userRole, 
-  onRoleChange, 
   onViewChange, 
   showMenu, 
   onMenuToggle, 
@@ -14,6 +13,7 @@ const Sidebar = ({
   onMenuStickyToggle,
   isLargeScreen
 }) => {
+  const { user } = useAuth();
   const userPanels = {
     restaurant: { icon: ChefHat, title: "Restaurant", color: "bg-orange-500" },
     home: { icon: Home, title: "Home Kitchen", color: "bg-blue-500" },
@@ -48,35 +48,22 @@ const Sidebar = ({
       </div>
       
       <div className="p-4 space-y-1">
-        <div className="mb-4">
-          <h3 className="text-sm font-semibold text-gray-700 mb-2">Switch Role</h3>
-          <div className="space-y-1">
-            {Object.entries(userPanels).map(([key, panel]) => {
-              const IconComponent = panel.icon;
-              return (
-                <button 
-                  key={key} 
-                  onClick={() => { 
-                    onRoleChange(key); 
-                    onViewChange('home'); 
-                    if (!menuSticky && !isLargeScreen) onMenuToggle(); 
-                  }} 
-                  className={`w-full flex items-center space-x-3 p-3 rounded-lg hover:bg-gray-100 transition-colors ${
-                    userRole === key ? 'bg-green-50 border border-green-200' : ''
-                  }`}
-                >
-                  <div className={`w-8 h-8 ${panel.color} rounded-full flex items-center justify-center`}>
-                    <IconComponent size={16} className="text-white" />
-                  </div>
-                  <span className={`font-medium ${userRole === key ? 'text-green-700' : 'text-gray-700'}`}>
-                    {panel.title}
-                  </span>
-                  {userRole === key && <div className="ml-auto w-2 h-2 bg-green-500 rounded-full"></div>}
-                </button>
-              );
-            })}
+        {user && (
+          <div className="mb-4">
+            <h3 className="text-sm font-semibold text-gray-700 mb-2">Your Role</h3>
+            <div className="bg-green-50 border border-green-200 rounded-lg p-3">
+              <div className="flex items-center space-x-3">
+                <div className={`w-8 h-8 ${userPanels[user.userRole]?.color || 'bg-gray-500'} rounded-full flex items-center justify-center`}>
+                  {React.createElement(userPanels[user.userRole]?.icon || User, { size: 16, className: "text-white" })}
+                </div>
+                <div>
+                  <div className="font-medium text-green-700">{userPanels[user.userRole]?.title || 'User'}</div>
+                  <div className="text-xs text-green-600">{user.businessName || `${user.firstName} ${user.lastName}`}</div>
+                </div>
+              </div>
+            </div>
           </div>
-        </div>
+        )}
 
         <div className="border-t border-gray-200 my-4"></div>
         

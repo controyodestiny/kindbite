@@ -1,9 +1,13 @@
 import React, { useState, useEffect } from 'react';
+import { AuthProvider, useAuth } from './contexts/AuthContext';
 import Header from './components/layout/Header';
 import Navigation from './components/layout/Navigation';
 import Sidebar from './components/layout/Sidebar';
 import AIChat from './components/features/AIChat';
 import FoodModal from './components/features/FoodModal';
+import AuthModal from './components/auth/AuthModal';
+import WelcomeScreen from './components/auth/WelcomeScreen';
+import FoodManagementModal from './components/food/FoodManagementModal';
 import HomeView from './views/HomeView';
 import SearchView from './views/SearchView';
 import CommunityView from './views/CommunityView';
@@ -95,14 +99,16 @@ import AboutView from './views/AboutView';
     }
   ];
 
-const KindBiteApp = () => {
+const KindBiteAppContent = () => {
+  const { user, isAuthenticated, login, register, updateKindCoins } = useAuth();
+  
   // State management
   const [currentView, setCurrentView] = useState('home');
-  const [userRole, setUserRole] = useState('end-user');
   const [selectedFood, setSelectedFood] = useState(null);
-  const [userPoints, setUserPoints] = useState(245);
   const [notifications, setNotifications] = useState(3);
   const [showAIChat, setShowAIChat] = useState(false);
+  const [showAuthModal, setShowAuthModal] = useState(false);
+  const [showFoodManagement, setShowFoodManagement] = useState(false);
   const [showMenu, setShowMenu] = useState(false);
   const [menuSticky, setMenuSticky] = useState(false);
   const [activeFilter, setActiveFilter] = useState('All');
@@ -110,6 +116,7 @@ const KindBiteApp = () => {
   const [aiInput, setAiInput] = useState('');
   const [searchTerm, setSearchTerm] = useState('');
   const [isLargeScreen, setIsLargeScreen] = useState(false);
+  const [userFoodListings, setUserFoodListings] = useState([]);
 
   // Responsive screen detection
   useEffect(() => {
@@ -140,13 +147,34 @@ const KindBiteApp = () => {
   };
 
   const handleReserve = (food) => {
+    if (!isAuthenticated) {
+      setShowAuthModal(true);
+      return;
+    }
+    
     alert(`Reserved: ${food.name} from ${food.restaurant}`);
     setSelectedFood(null);
-    setUserPoints(prev => prev + 10);
+    updateKindCoins(10);
+  };
+
+  const handleAddFood = (newFood) => {
+    setUserFoodListings(prev => [...prev, newFood]);
+    // Also add to main food listings for display
+    foodListings.push(newFood);
+  };
+
+  const handleUpdateFood = (updatedFood) => {
+    setUserFoodListings(prev => 
+      prev.map(food => food.id === updatedFood.id ? updatedFood : food)
+    );
+  };
+
+  const handleDeleteFood = (foodId) => {
+    setUserFoodListings(prev => prev.filter(food => food.id !== foodId));
   };
 
   const getViewTitle = () => {
-    if (currentView === 'home' && userRole !== 'end-user') {
+    if (currentView === 'home' && user && user.userRole !== 'end-user') {
       const roleTitles = {
         restaurant: 'Restaurant Dashboard',
         home: 'Home Kitchen Dashboard',
@@ -157,7 +185,7 @@ const KindBiteApp = () => {
         ambassador: 'Food Ambassador Dashboard',
         donor: 'Donor Dashboard'
       };
-      return roleTitles[userRole] || 'Dashboard';
+      return roleTitles[user.userRole] || 'Dashboard';
     }
 
     const viewTitles = {
@@ -178,38 +206,50 @@ const KindBiteApp = () => {
 
   // Render current view
   const renderCurrentView = () => {
-    if (currentView === 'home' && userRole !== 'end-user') {
+    if (currentView === 'home' && user && user.userRole !== 'end-user') {
       return (
         <div className="text-center py-8">
             <div className="text-6xl mb-4">
-              {userRole === 'restaurant' ? '🍽️' : 
-               userRole === 'home' ? '🏠' : 
-               userRole === 'factory' ? '🏭' :
-               userRole === 'supermarket' ? '🛒' :
-               userRole === 'retail' ? '🏪' :
-               userRole === 'verifier' ? '🩺' : 
-               userRole === 'ambassador' ? '✅' : '💰'}
+              {user.userRole === 'restaurant' ? '🍽️' : 
+               user.userRole === 'home' ? '🏠' : 
+               user.userRole === 'factory' ? '🏭' :
+               user.userRole === 'supermarket' ? '🛒' :
+               user.userRole === 'retail' ? '🏪' :
+               user.userRole === 'verifier' ? '🩺' : 
+               user.userRole === 'ambassador' ? '✅' : '💰'}
             </div>
-          <h2 className="text-xl font-bold text-gray-800 mb-2">Welcome to {userRole} Dashboard</h2>
+          <h2 className="text-xl font-bold text-gray-800 mb-2">Welcome to {user.userRole} Dashboard</h2>
             <p className="text-gray-600 mb-6">This is your specialized dashboard for managing your role in the KindBite ecosystem.</p>
+            
+            {/* Quick Actions */}
+            <div className="mb-6">
+              <button
+                onClick={() => setShowFoodManagement(true)}
+                className="bg-green-600 text-white px-6 py-3 rounded-lg font-semibold hover:bg-green-700 transition-colors flex items-center space-x-2 mx-auto"
+              >
+                <span>🍽️</span>
+                <span>Manage Food Items</span>
+              </button>
+            </div>
+            
             <div className="bg-white rounded-lg shadow-md p-4 max-w-sm mx-auto">
               <h3 className="font-semibold text-gray-800 mb-3">Today's Performance</h3>
               <div className="grid grid-cols-3 gap-4 text-center">
                 <div>
                   <div className="text-xl font-bold text-orange-600">
-                    {userRole === 'factory' ? '156' : userRole === 'supermarket' ? '89' : userRole === 'retail' ? '34' : '23'}
+                    {userFoodListings.length || (user.userRole === 'factory' ? '156' : user.userRole === 'supermarket' ? '89' : user.userRole === 'retail' ? '34' : '23')}
                   </div>
                   <div className="text-xs text-gray-600">Items Listed</div>
                 </div>
                 <div>
                   <div className="text-xl font-bold text-green-600">
-                    {userRole === 'factory' ? '142' : userRole === 'supermarket' ? '76' : userRole === 'retail' ? '28' : '18'}
+                    {user.userRole === 'factory' ? '142' : user.userRole === 'supermarket' ? '76' : user.userRole === 'retail' ? '28' : '18'}
                   </div>
                   <div className="text-xs text-gray-600">Completed</div>
                 </div>
                 <div>
                   <div className="text-xl font-bold text-purple-600">
-                    {userRole === 'factory' ? '2,840' : userRole === 'supermarket' ? '1,560' : userRole === 'retail' ? '680' : '340'}
+                    {user.userRole === 'factory' ? '2,840' : user.userRole === 'supermarket' ? '1,560' : user.userRole === 'retail' ? '680' : '340'}
                   </div>
                   <div className="text-xs text-gray-600">KindCoins</div>
               </div>
@@ -240,13 +280,13 @@ const KindBiteApp = () => {
       case 'points':
         return (
           <PointsView
-            userPoints={userPoints}
+            userPoints={user?.kindCoins || 0}
           />
         );
       case 'profile':
         return (
           <ProfileView
-            userPoints={userPoints}
+            userPoints={user?.kindCoins || 0}
           />
         );
       case 'about':
@@ -257,7 +297,7 @@ const KindBiteApp = () => {
       default:
         return (
           <HomeView
-            userPoints={userPoints}
+            userPoints={user?.kindCoins || 0}
             foodListings={foodListings}
             onFoodSelect={setSelectedFood}
             onViewChange={setCurrentView}
@@ -266,6 +306,21 @@ const KindBiteApp = () => {
     }
   };
 
+  // Show welcome screen for unauthenticated users
+  if (!isAuthenticated) {
+    return (
+      <>
+        <WelcomeScreen onGetStarted={() => setShowAuthModal(true)} />
+        <AuthModal
+          isOpen={showAuthModal}
+          onClose={() => setShowAuthModal(false)}
+          onLogin={login}
+          onRegister={register}
+        />
+      </>
+    );
+  }
+
   return (
     <div className="min-h-screen bg-gray-50">
       {/* Header */}
@@ -273,14 +328,13 @@ const KindBiteApp = () => {
         title={getViewTitle()}
         onMenuToggle={() => setShowMenu(!showMenu)}
         onAIChatToggle={() => setShowAIChat(true)}
+        onAuthToggle={() => setShowAuthModal(true)}
         notifications={notifications}
         isLargeScreen={isLargeScreen}
       />
 
       {/* Sidebar - Desktop: always visible, Mobile: slide-out menu */}
       <Sidebar
-        userRole={userRole}
-        onRoleChange={setUserRole}
         onViewChange={setCurrentView}
         showMenu={showMenu}
         onMenuToggle={() => setShowMenu(!showMenu)}
@@ -315,7 +369,32 @@ const KindBiteApp = () => {
         onAiInputChange={(e) => setAiInput(e.target.value)}
         onSendMessage={sendAIMessage}
       />
+
+      <AuthModal
+        isOpen={showAuthModal}
+        onClose={() => setShowAuthModal(false)}
+        onLogin={login}
+        onRegister={register}
+      />
+
+      <FoodManagementModal
+        isOpen={showFoodManagement}
+        onClose={() => setShowFoodManagement(false)}
+        user={user}
+        userFoodListings={userFoodListings}
+        onAddFood={handleAddFood}
+        onUpdateFood={handleUpdateFood}
+        onDeleteFood={handleDeleteFood}
+      />
     </div>
+  );
+};
+
+const KindBiteApp = () => {
+  return (
+    <AuthProvider>
+      <KindBiteAppContent />
+    </AuthProvider>
   );
 };
 
