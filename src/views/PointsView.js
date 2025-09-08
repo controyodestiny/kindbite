@@ -1,6 +1,6 @@
 import React from 'react';
 
-const PointsView = ({ userPoints }) => (
+const PointsView = ({ userPoints, onViewChange }) => (
   <div>
     <div className="p-4 lg:p-6">
       <div className="bg-gradient-to-r from-green-600 to-green-700 rounded-lg p-6 text-white mb-6 lg:p-8 lg:mb-8">
@@ -45,6 +45,16 @@ const PointsView = ({ userPoints }) => (
           </div>
         ))}
       </div>
+
+        {/* Back to Home Button */}
+        <div className="text-center mt-6">
+          <button
+            onClick={() => onViewChange && onViewChange('home')}
+            className="bg-green-500 text-white px-6 py-3 rounded-lg font-semibold hover:bg-green-600 transition-colors duration-200"
+          >
+            Back to Home
+          </button>
+        </div>
     </div>
   </div>
 );

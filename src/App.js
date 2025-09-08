@@ -10,313 +10,330 @@ import CommunityView from './views/CommunityView';
 import PointsView from './views/PointsView';
 import ProfileView from './views/ProfileView';
 import AboutView from './views/AboutView';
+import MessagesView from './views/MessagesView';
+import ChatModal from './components/features/ChatModal';
+import EnvironmentView from './views/EnvironmentView';
+import PartnersView from './views/PartnersView';
+import apiService from './services/api';
 
-// Mock data
-  const foodListings = [
-    {
-      id: 1,
-      restaurant: "Mama's Kitchen",
-      name: "Mixed Rice & Chicken",
-      description: "Delicious local rice with grilled chicken and vegetables",
-      originalPrice: 15000,
-      discountedPrice: 5000,
-      quantity: 8,
-      rating: 4.8,
-      distance: "0.3 km",
-      pickupWindow: "5:00 PM - 7:00 PM",
-      dietary: ["Halal", "Gluten-Free"],
-      image: "🍛",
-      co2Saved: 2.4,
-      provider: "restaurant"
-    },
-    {
-      id: 2,
-      restaurant: "The Nakasero Home",
-      name: "Vegetarian Combo",
-      description: "Fresh salad, soup, and bread rolls from home kitchen",
-      originalPrice: 12000,
-      discountedPrice: 0,
-      quantity: 12,
-      rating: 4.6,
-      distance: "0.7 km",
-      pickupWindow: "6:00 PM - 8:00 PM",
-      dietary: ["Vegetarian", "Vegan"],
-      image: "🥗",
-      co2Saved: 1.8,
-      provider: "home"
-    },
-    {
-      id: 3,
-      restaurant: "Uganda Food Industries",
-      name: "Bread & Pastries - End of Day",
-      description: "Fresh bread, rolls, and pastries from today's production",
-      originalPrice: 8000,
-      discountedPrice: 2000,
-      quantity: 25,
-      rating: 4.5,
-      distance: "2.1 km",
-      pickupWindow: "4:00 PM - 6:00 PM",
-      dietary: ["Contains Gluten"],
-      image: "🍞",
-      co2Saved: 1.6,
-      provider: "factory"
-    },
-    {
-      id: 4,
-      restaurant: "Shoprite Kampala",
-      name: "Fresh Produce Clearance",
-      description: "Slightly overripe fruits and vegetables, perfect for cooking",
-      originalPrice: 5000,
-      discountedPrice: 1500,
-      quantity: 40,
-      rating: 4.3,
-      distance: "1.8 km",
-      pickupWindow: "7:00 PM - 9:00 PM",
-      dietary: ["Organic", "Vegetarian", "Vegan"],
-      image: "🥕",
-      co2Saved: 2.8,
-      provider: "supermarket"
-    },
-    {
-      id: 5,
-      restaurant: "Corner Café & Bakery",
-      name: "Coffee Shop Surplus",
-      description: "Sandwiches, pastries, and salads from today's café service",
-      originalPrice: 12000,
-      discountedPrice: 3000,
-      quantity: 18,
-      rating: 4.6,
-      distance: "0.9 km",
-      pickupWindow: "5:30 PM - 7:30 PM",
-      dietary: ["Vegetarian Options"],
-      image: "🥪",
-      co2Saved: 2.1,
-      provider: "retail"
-    }
-  ];
-
-const KindBiteApp = () => {
-  // State management
+function App() {
   const [currentView, setCurrentView] = useState('home');
-  const [userRole, setUserRole] = useState('end-user');
-  const [selectedFood, setSelectedFood] = useState(null);
-  const [userPoints, setUserPoints] = useState(245);
-  const [notifications, setNotifications] = useState(3);
+  const [showSidebar, setShowSidebar] = useState(false);
   const [showAIChat, setShowAIChat] = useState(false);
-  const [showMenu, setShowMenu] = useState(false);
-  const [menuSticky, setMenuSticky] = useState(false);
-  const [activeFilter, setActiveFilter] = useState('All');
+  const [showFoodModal, setShowFoodModal] = useState(false);
+  const [showNotifications, setShowNotifications] = useState(false);
+  const [showChat, setShowChat] = useState(false);
+  const [currentChat, setCurrentChat] = useState(null);
+  const [searchTerm, setSearchTerm] = useState('');
+  const [messages, setMessages] = useState([]);
+  const [isTyping, setIsTyping] = useState(false);
   const [aiMessages, setAiMessages] = useState([]);
   const [aiInput, setAiInput] = useState('');
-  const [searchTerm, setSearchTerm] = useState('');
-  const [isLargeScreen, setIsLargeScreen] = useState(false);
+  const [notifications, setNotifications] = useState([]);
+  const [foodListings, setFoodListings] = useState([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [selectedFood, setSelectedFood] = useState(null);
 
-  // Responsive screen detection
+  // Load initial data from API on component mount
   useEffect(() => {
-    const checkScreenSize = () => {
-      setIsLargeScreen(window.innerWidth >= 1024); // lg breakpoint
-    };
-    
-    checkScreenSize();
-    window.addEventListener('resize', checkScreenSize);
-    
-    return () => window.removeEventListener('resize', checkScreenSize);
+    loadInitialData();
   }, []);
 
-  // Helper functions
-  const sendAIMessage = () => {
-    if (!aiInput.trim()) return;
-    const userMessage = { sender: 'user', text: aiInput, timestamp: new Date() };
-    setAiMessages(prev => [...prev, userMessage]);
-    setTimeout(() => {
-      const aiResponse = { 
-        sender: 'ai', 
-        text: `I can help you with KindBite! For "${aiInput}", I recommend checking nearby restaurants or connecting with a food ambassador in your area.`, 
-        timestamp: new Date() 
-      };
-      setAiMessages(prev => [...prev, aiResponse]);
-    }, 1000);
-    setAiInput('');
+  const loadInitialData = async () => {
+    try {
+      setIsLoading(true);
+      
+      // Load food listings from API with fallback
+      const foodData = await apiService.getDataWithFallback('/food-listings/', 'food-listings');
+      setFoodListings(foodData);
+      
+      // Load notifications from API with fallback
+      const notificationData = await apiService.getDataWithFallback('/notifications/', 'notifications');
+      setNotifications(notificationData);
+      
+    } catch (error) {
+      console.warn('Error loading initial data:', error);
+      // Use mock data as fallback
+      setFoodListings(apiService.getMockData('food-listings'));
+      setNotifications(apiService.getMockData('notifications'));
+    } finally {
+      setIsLoading(false);
+    }
   };
 
-  const handleReserve = (food) => {
-    alert(`Reserved: ${food.name} from ${food.restaurant}`);
+  const handleOpenFoodModal = (food) => {
+    setSelectedFood(food);
+    setShowFoodModal(true);
+  };
+
+  const handleCloseFoodModal = () => {
+    setShowFoodModal(false);
     setSelectedFood(null);
-    setUserPoints(prev => prev + 10);
+  };
+
+  const handleOpenChat = (conversation) => {
+    setCurrentChat(conversation);
+    setShowChat(true);
+  };
+
+  const handleCloseChat = () => {
+    setShowChat(false);
+    setCurrentChat(null);
+  };
+
+  const handleNewMessage = (conversationId, message) => {
+    // Update conversations in MessagesView
+    // This will be handled by the MessagesView component itself
+  };
+
+  const onSendMessage = (message) => {
+    if (message.sender === 'user') {
+      setAiMessages(prev => [...prev, message]);
+    } else {
+      setAiMessages(prev => [...prev, message]);
+    }
   };
 
   const getViewTitle = () => {
-    if (currentView === 'home' && userRole !== 'end-user') {
-      const roleTitles = {
-        restaurant: 'Restaurant Dashboard',
-        home: 'Home Kitchen Dashboard',
-        factory: 'Food Factory Dashboard',
-        supermarket: 'Supermarket Dashboard',
-        retail: 'Retail Shop Dashboard',
-        verifier: 'Food Verifier Dashboard',
-        ambassador: 'Food Ambassador Dashboard',
-        donor: 'Donor Dashboard'
-      };
-      return roleTitles[userRole] || 'Dashboard';
+    switch (currentView) {
+      case 'home': return 'KindBite';
+      case 'search': return 'Find Food';
+      case 'community': return 'Community';
+      case 'points': return 'My Points';
+      case 'profile': return 'My Profile';
+      case 'about': return 'About';
+      case 'messages': return 'Messages';
+      case 'environment': return 'Environmental Impact';
+      case 'partners': return 'Our Partners';
+      default: return 'KindBite';
     }
-
-    const viewTitles = {
-      home: 'Rescue food, earn KindCoins',
-      search: 'Find Available Food',
-      community: 'Community Hub',
-      points: 'KindCoins & Rewards',
-      profile: 'Your Profile & Impact',
-      about: 'About KindBite',
-      partners: 'Our Global Partners',
-      environment: 'Environmental Impact',
-      news: 'News & Celebrations',
-      chat: 'Messages & Friends',
-      panels: 'User Panels'
-    };
-    return viewTitles[currentView] || 'KindBite';
   };
 
-  // Render current view
-  const renderCurrentView = () => {
-    if (currentView === 'home' && userRole !== 'end-user') {
-      return (
-        <div className="text-center py-8">
-            <div className="text-6xl mb-4">
-              {userRole === 'restaurant' ? '🍽️' : 
-               userRole === 'home' ? '🏠' : 
-               userRole === 'factory' ? '🏭' :
-               userRole === 'supermarket' ? '🛒' :
-               userRole === 'retail' ? '🏪' :
-               userRole === 'verifier' ? '🩺' : 
-               userRole === 'ambassador' ? '✅' : '💰'}
-            </div>
-          <h2 className="text-xl font-bold text-gray-800 mb-2">Welcome to {userRole} Dashboard</h2>
-            <p className="text-gray-600 mb-6">This is your specialized dashboard for managing your role in the KindBite ecosystem.</p>
-            <div className="bg-white rounded-lg shadow-md p-4 max-w-sm mx-auto">
-              <h3 className="font-semibold text-gray-800 mb-3">Today's Performance</h3>
-              <div className="grid grid-cols-3 gap-4 text-center">
-                <div>
-                  <div className="text-xl font-bold text-orange-600">
-                    {userRole === 'factory' ? '156' : userRole === 'supermarket' ? '89' : userRole === 'retail' ? '34' : '23'}
-                  </div>
-                  <div className="text-xs text-gray-600">Items Listed</div>
-                </div>
-                <div>
-                  <div className="text-xl font-bold text-green-600">
-                    {userRole === 'factory' ? '142' : userRole === 'supermarket' ? '76' : userRole === 'retail' ? '28' : '18'}
-                  </div>
-                  <div className="text-xs text-gray-600">Completed</div>
-                </div>
-                <div>
-                  <div className="text-xl font-bold text-purple-600">
-                    {userRole === 'factory' ? '2,840' : userRole === 'supermarket' ? '1,560' : userRole === 'retail' ? '680' : '340'}
-                  </div>
-                  <div className="text-xs text-gray-600">KindCoins</div>
-              </div>
-            </div>
-          </div>
-        </div>
-      );
-    }
+  const handleNotificationToggle = () => {
+    setShowNotifications(!showNotifications);
+  };
 
-    switch(currentView) {
+  const handleMarkAllNotificationsRead = async () => {
+    try {
+      await apiService.markAllNotificationsRead();
+      // Update local state
+      setNotifications(prev => prev.map(notif => ({ ...notif, isRead: true })));
+    } catch (error) {
+      console.error('Failed to mark notifications as read:', error);
+      // Still update local state for better UX
+      setNotifications(prev => prev.map(notif => ({ ...notif, isRead: true })));
+    }
+  };
+
+  const handleFoodLikeToggle = async (foodId, isLiked) => {
+    try {
+      if (isLiked) {
+        await apiService.likeFood(foodId);
+      } else {
+        await apiService.unlikeFood(foodId);
+      }
+      
+      // Update local state
+      setFoodListings(prev => prev.map(food => {
+        if (food.id === foodId) {
+          return {
+            ...food,
+            isLiked: isLiked,
+            likesCount: isLiked ? (food.likesCount || 0) + 1 : Math.max(0, (food.likesCount || 1) - 1)
+          };
+        }
+        return food;
+      }));
+      
+      // Save updated food listings to localStorage
+      apiService.saveToLocalStorage('kindbite_food_listings', foodListings);
+      
+    } catch (error) {
+      console.warn('Could not update food like status:', error);
+      // Update locally anyway for better UX
+      setFoodListings(prev => prev.map(food => {
+        if (food.id === foodId) {
+          return {
+            ...food,
+            isLiked: isLiked,
+            likesCount: isLiked ? (food.likesCount || 0) + 1 : Math.max(0, (food.likesCount || 1) - 1)
+          };
+        }
+        return food;
+      }));
+    }
+  };
+
+  const renderCurrentView = () => {
+    switch (currentView) {
+      case 'home':
+        return (
+          <HomeView
+            foodListings={foodListings}
+            onOpenFoodModal={handleOpenFoodModal}
+            onViewChange={setCurrentView}
+            onLikeToggle={handleFoodLikeToggle}
+          />
+        );
       case 'search':
         return (
           <SearchView
-            searchTerm={searchTerm}
-            onSearchChange={(e) => setSearchTerm(e.target.value)}
-            activeFilter={activeFilter}
-            onFilterChange={setActiveFilter}
             foodListings={foodListings}
-            onFoodSelect={setSelectedFood}
+            onOpenFoodModal={handleOpenFoodModal}
+            onViewChange={setCurrentView}
+            onLikeToggle={handleFoodLikeToggle}
           />
         );
       case 'community':
-        return (
-          <CommunityView
-            onViewChange={setCurrentView}
-          />
-        );
+        return <CommunityView onViewChange={setCurrentView} />;
       case 'points':
-        return (
-          <PointsView
-            userPoints={userPoints}
-          />
-        );
+        return <PointsView onViewChange={setCurrentView} />;
       case 'profile':
+        return <ProfileView onViewChange={setCurrentView} />;
+      case 'messages':
         return (
-          <ProfileView
-            userPoints={userPoints}
+          <MessagesView
+            onViewChange={setCurrentView}
+            onOpenChat={handleOpenChat}
           />
         );
-      case 'about':
-        return (
-          <AboutView />
-        );
-      case 'home':
+      case 'environment':
+        return <EnvironmentView onViewChange={setCurrentView} />;
+      case 'partners':
+        return <PartnersView onViewChange={setCurrentView} />;
       default:
         return (
           <HomeView
-            userPoints={userPoints}
             foodListings={foodListings}
-            onFoodSelect={setSelectedFood}
+            onOpenFoodModal={handleOpenFoodModal}
             onViewChange={setCurrentView}
+            onLikeToggle={handleFoodLikeToggle}
           />
         );
     }
   };
 
+  const unreadNotificationsCount = notifications.filter(n => !n.isRead).length;
+
   return (
     <div className="min-h-screen bg-gray-50">
-      {/* Header */}
       <Header
-        title={getViewTitle()}
-        onMenuToggle={() => setShowMenu(!showMenu)}
-        onAIChatToggle={() => setShowAIChat(true)}
-        notifications={notifications}
-        isLargeScreen={isLargeScreen}
+        onMenuToggle={() => setShowSidebar(!showSidebar)}
+        onAIChatToggle={() => setShowAIChat(!showAIChat)}
+        onNotificationsToggle={handleNotificationToggle}
+        notifications={unreadNotificationsCount}
+        isLargeScreen={window.innerWidth >= 1024}
       />
 
-      {/* Sidebar - Desktop: always visible, Mobile: slide-out menu */}
       <Sidebar
-        userRole={userRole}
-        onRoleChange={setUserRole}
+        isOpen={showSidebar}
+        onClose={() => setShowSidebar(false)}
+        currentView={currentView}
         onViewChange={setCurrentView}
-        showMenu={showMenu}
-        onMenuToggle={() => setShowMenu(!showMenu)}
-        menuSticky={menuSticky}
-        onMenuStickyToggle={() => setMenuSticky(!menuSticky)}
-        isLargeScreen={isLargeScreen}
       />
 
-      {/* Main Content */}
-      <main className={`pb-20 ${isLargeScreen ? 'lg:pl-64 lg:pt-20' : ''}`}>
-      {renderCurrentView()}
+      <main className="pt-20 pb-24">
+        {renderCurrentView()}
       </main>
 
-      {/* Navigation - Always visible bottom bar */}
       <Navigation
         currentView={currentView}
         onViewChange={setCurrentView}
       />
 
-      {/* Modals */}
-      <FoodModal
-        selectedFood={selectedFood}
-        onClose={() => setSelectedFood(null)}
-        onReserve={handleReserve}
-      />
+      {/* AI Chat Modal */}
+      {showAIChat && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4">
+          <div className="bg-white rounded-lg shadow-xl w-full max-w-4xl h-[80vh] max-h-[600px] overflow-hidden">
+            <AIChat
+              showAIChat={showAIChat}
+              onClose={() => setShowAIChat(false)}
+              aiMessages={aiMessages}
+              aiInput={aiInput}
+              onAiInputChange={(e) => setAiInput(e.target.value)}
+              onSendMessage={(message) => {
+                if (message.sender === 'user') {
+                  setAiMessages(prev => [...prev, message]);
+                } else {
+                  setAiMessages(prev => [...prev, message]);
+                }
+              }}
+              foodListings={foodListings}
+            />
+          </div>
+        </div>
+      )}
 
-      <AIChat
-        showAIChat={showAIChat}
-        onClose={() => setShowAIChat(false)}
-        aiMessages={aiMessages}
-        aiInput={aiInput}
-        onAiInputChange={(e) => setAiInput(e.target.value)}
-        onSendMessage={sendAIMessage}
-      />
+      {/* Food Modal */}
+      {showFoodModal && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4">
+          <div className="bg-white rounded-lg shadow-xl w-full max-w-2xl max-h-[90vh] overflow-y-auto">
+            <FoodModal
+              onClose={handleCloseFoodModal}
+              food={selectedFood}
+            />
+          </div>
+        </div>
+      )}
+
+      {/* Notifications Modal */}
+      {showNotifications && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4">
+          <div className="bg-white rounded-lg shadow-xl w-full max-w-md max-h-[80vh] overflow-y-auto">
+            <div className="p-6">
+              <div className="flex items-center justify-between mb-4">
+                <h2 className="text-xl font-semibold text-gray-800">Notifications</h2>
+                <button
+                  onClick={handleNotificationToggle}
+                  className="text-gray-400 hover:text-gray-600"
+                >
+                  ✕
+                </button>
+              </div>
+              
+              {notifications.length === 0 ? (
+                <p className="text-gray-500 text-center py-8">No notifications</p>
+              ) : (
+                <div className="space-y-3">
+                  {notifications.map((notification) => (
+                    <div key={notification.id} className="p-3 bg-gray-50 rounded-lg">
+                      <p className="text-gray-800">{notification.message}</p>
+                      <p className="text-sm text-gray-500 mt-1">{notification.timestamp}</p>
+                    </div>
+                  ))}
+                </div>
+              )}
+              
+              {notifications.length > 0 && (
+                <button
+                  onClick={handleMarkAllNotificationsRead}
+                  className="w-full mt-4 bg-green-500 text-white py-2 rounded-lg hover:bg-green-600 transition-colors duration-200"
+                >
+                  Mark All as Read
+                </button>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Chat Modal */}
+      {showChat && currentChat && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4">
+          <div className="bg-white rounded-lg shadow-xl w-full max-w-4xl h-[80vh] max-h-[600px] overflow-hidden">
+            <ChatModal
+              conversation={currentChat}
+              onClose={handleCloseChat}
+              onSendMessage={(message) => {
+                // Handle sending messages
+                console.log('Sending message:', message);
+              }}
+            />
+          </div>
+        </div>
+      )}
     </div>
   );
-};
+}
 
-export default KindBiteApp;
+export default App;

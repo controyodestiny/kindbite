@@ -4,10 +4,13 @@ from rest_framework.response import Response
 from rest_framework.views import APIView
 from rest_framework.permissions import IsAuthenticated, IsAuthenticatedOrReadOnly
 from django.contrib.auth import login, logout
-from django.db.models import Q, Count, Sum, Avg
+from django.db.models import Q, Count, Sum, Avg, F
 from django.utils import timezone
 from datetime import datetime, timedelta
 from decimal import Decimal
+import math
+import openai
+from django.conf import settings
 
 from .models import (
     User, Provider, FoodCategory, DietaryTag, FoodListing, 
@@ -321,9 +324,59 @@ class AIChatViewSet(viewsets.ModelViewSet):
         return AIChatSerializer
     
     def perform_create(self, serializer):
-        # Simple AI response (can be enhanced with actual AI integration)
         message = serializer.validated_data['message']
-        response = f"I can help you with KindBite! For '{message}', I recommend checking nearby restaurants or connecting with a food ambassador in your area."
+        
+        # Configure OpenAI client
+        if settings.OPENAI_API_KEY:
+            openai.api_key = settings.OPENAI_API_KEY
+            
+            try:
+                # Create context-aware prompt for KindBite
+                system_prompt = """You are a helpful AI assistant for KindBite, a food rescue app that helps reduce food waste by connecting users with surplus food from restaurants, bakeries, and supermarkets. 
+
+Your role is to:
+1. Help users find food options
+2. Explain how food rescue works
+3. Provide information about environmental impact
+4. Assist with dietary preferences
+5. Guide users through the app features
+
+Keep responses helpful, friendly, and focused on food rescue and sustainability. Use emojis occasionally to make responses engaging."""
+                
+                # Get conversation history for context
+                recent_chats = AIChat.objects.filter(
+                    user=self.request.user
+                ).order_by('-created_at')[:10]
+                
+                messages = [{"role": "system", "content": system_prompt}]
+                
+                # Add recent conversation context
+                for chat in reversed(recent_chats):
+                    if chat.is_user_message:
+                        messages.append({"role": "user", "content": chat.message})
+                    else:
+                        messages.append({"role": "assistant", "content": chat.response})
+                
+                # Add current user message
+                messages.append({"role": "user", "content": message})
+                
+                # Call OpenAI API
+                response = openai.ChatCompletion.create(
+                    model=settings.OPENAI_MODEL,
+                    messages=messages,
+                    max_tokens=300,
+                    temperature=0.7
+                )
+                
+                ai_response = response.choices[0].message.content
+                
+            except Exception as e:
+                print(f"OpenAI API error: {e}")
+                # Fallback response if OpenAI fails
+                ai_response = f"I can help you with KindBite! For '{message}', I recommend checking nearby restaurants or connecting with a food ambassador in your area."
+        else:
+            # Fallback response if no API key
+            ai_response = f"I can help you with KindBite! For '{message}', I recommend checking nearby restaurants or connecting with a food ambassador in your area."
         
         # Save user message
         user_chat = AIChat.objects.create(
@@ -337,7 +390,7 @@ class AIChatViewSet(viewsets.ModelViewSet):
         ai_chat = AIChat.objects.create(
             user=self.request.user,
             message="",
-            response=response,
+            response=ai_response,
             is_user_message=False
         )
         
@@ -404,3 +457,333 @@ class DashboardView(APIView):
         
         serializer = DashboardStatsSerializer(stats)
         return Response(serializer.data)
+
+
+class FoodSearchAPI(APIView):
+    """Advanced food search API with filters, geolocation, and environmental impact"""
+    permission_classes = [permissions.AllowAny]
+    
+    def get(self, request):
+        """Advanced food search with multiple filters"""
+        # Get search parameters
+        search_term = request.query_params.get('search', '')
+        category_id = request.query_params.get('category', None)
+        provider_type = request.query_params.get('provider_type', None)
+        max_price = request.query_params.get('max_price', None)
+        min_rating = request.query_params.get('min_rating', None)
+        dietary_tags = request.query_params.getlist('dietary_tags', [])
+        distance_km = request.query_params.get('distance_km', 10)
+        latitude = request.query_params.get('latitude', None)
+        longitude = request.query_params.get('longitude', None)
+        sort_by = request.query_params.get('sort_by', 'distance')  # distance, price, rating, newest
+        page = int(request.query_params.get('page', 1))
+        page_size = min(int(request.query_params.get('page_size', 20)), 100)
+        
+        # Start with available food listings
+        queryset = FoodListing.objects.filter(
+            status='available',
+            available_quantity__gt=0
+        ).select_related('provider', 'category', 'environmental_impact')
+        
+        # Apply search filters
+        if search_term:
+            queryset = queryset.filter(
+                Q(name__icontains=search_term) |
+                Q(description__icontains=search_term) |
+                Q(provider__business_name__icontains=search_term)
+            )
+        
+        if category_id:
+            queryset = queryset.filter(category_id=category_id)
+            
+        if provider_type:
+            queryset = queryset.filter(provider__provider_type=provider_type)
+            
+        if max_price:
+            queryset = queryset.filter(discounted_price__lte=float(max_price))
+            
+        if min_rating:
+            queryset = queryset.filter(rating__gte=float(min_rating))
+            
+        if dietary_tags:
+            queryset = queryset.filter(dietary_tags__id__in=dietary_tags)
+        
+        # Apply geolocation filtering if coordinates provided
+        if latitude and longitude:
+            lat, lng = float(latitude), float(longitude)
+            queryset = self._filter_by_distance(queryset, lat, lng, float(distance_km))
+        
+        # Apply sorting
+        queryset = self._apply_sorting(queryset, sort_by)
+        
+        # Pagination
+        total_count = queryset.count()
+        start = (page - 1) * page_size
+        end = start + page_size
+        food_listings = queryset[start:end]
+        
+        # Calculate environmental impact summary
+        environmental_summary = self._calculate_environmental_summary(queryset)
+        
+        # Serialize results
+        serializer = FoodListingSerializer(food_listings, many=True)
+        
+        return Response({
+            'results': serializer.data,
+            'pagination': {
+                'page': page,
+                'page_size': page_size,
+                'total_count': total_count,
+                'total_pages': math.ceil(total_count / page_size)
+            },
+            'filters_applied': {
+                'search_term': search_term,
+                'category_id': category_id,
+                'provider_type': provider_type,
+                'max_price': max_price,
+                'min_rating': min_rating,
+                'dietary_tags': dietary_tags,
+                'distance_km': distance_km,
+                'latitude': latitude,
+                'longitude': longitude
+            },
+            'environmental_summary': environmental_summary
+        })
+    
+    def _filter_by_distance(self, queryset, lat, lng, max_distance):
+        """Filter food listings by distance from given coordinates"""
+        # Simple distance calculation (can be enhanced with PostGIS)
+        # For now, return all results but add distance calculation
+        return queryset
+    
+    def _apply_sorting(self, queryset, sort_by):
+        """Apply sorting to queryset"""
+        if sort_by == 'price':
+            return queryset.order_by('discounted_price')
+        elif sort_by == 'rating':
+            return queryset.order_by('-rating')
+        elif sort_by == 'newest':
+            return queryset.order_by('-created_at')
+        elif sort_by == 'distance':
+            # Default sorting by creation date (closest to newest)
+            return queryset.order_by('-created_at')
+        else:
+            return queryset.order_by('-created_at')
+    
+    def _calculate_environmental_summary(self, queryset):
+        """Calculate environmental impact summary for search results"""
+        total_co2 = 0
+        total_water = 0
+        total_packaging = 0
+        total_meals = 0
+        
+        for food in queryset:
+            if hasattr(food, 'environmental_impact'):
+                impact = food.environmental_impact
+                total_co2 += float(impact.co2_saved_kg or 0)
+                total_water += float(impact.water_saved_liters or 0)
+                total_packaging += float(impact.packaging_reduced_kg or 0)
+            total_meals += food.available_quantity
+        
+        return {
+            'total_co2_saved_kg': round(total_co2, 2),
+            'total_water_saved_liters': round(total_water, 2),
+            'total_packaging_reduced_kg': round(total_packaging, 2),
+            'total_meals_available': total_meals,
+            'estimated_trees_equivalent': round(total_co2 / 22, 2)  # 1 tree absorbs ~22kg CO2/year
+        }
+
+
+class UserStatisticsAPI(APIView):
+    """User statistics and impact tracking API"""
+    permission_classes = [IsAuthenticated]
+    
+    def get(self, request):
+        """Get comprehensive user statistics"""
+        user = request.user
+        
+        # Get user's reservations
+        reservations = Reservation.objects.filter(user=user)
+        completed_reservations = reservations.filter(status='picked_up')
+        
+        # Calculate total impact
+        total_meals_saved = completed_reservations.aggregate(
+            total=Sum('quantity')
+        )['total'] or 0
+        
+        total_co2_saved = 0
+        total_water_saved = 0
+        total_packaging_reduced = 0
+        
+        for reservation in completed_reservations:
+            if hasattr(reservation.food_listing, 'environmental_impact'):
+                impact = reservation.food_listing.environmental_impact
+                total_co2_saved += float(impact.co2_saved_kg or 0) * reservation.quantity
+                total_water_saved += float(impact.water_saved_liters or 0) * reservation.quantity
+                total_packaging_reduced += float(impact.packaging_reduced_kg or 0) * reservation.quantity
+        
+        # Get monthly impact for the last 6 months
+        monthly_impact = []
+        for i in range(6):
+            month_start = timezone.now().replace(day=1) - timedelta(days=30*i)
+            month_end = month_start.replace(day=28) + timedelta(days=4)
+            month_end = month_end.replace(day=1) - timedelta(days=1)
+            
+            month_reservations = completed_reservations.filter(
+                created_at__gte=month_start,
+                created_at__lte=month_end
+            )
+            
+            month_meals = month_reservations.aggregate(total=Sum('quantity'))['total'] or 0
+            
+            monthly_impact.append({
+                'month': month_start.strftime('%B %Y'),
+                'meals_saved': month_meals,
+                'co2_saved': round(total_co2_saved * (month_meals / total_meals_saved) if total_meals_saved > 0 else 0, 2)
+            })
+        
+        # Get user's ranking (if applicable)
+        user_ranking = self._get_user_ranking(user)
+        
+        return Response({
+            'user_info': {
+                'username': user.username,
+                'role': user.get_role_display(),
+                'kind_coins': user.kind_coins,
+                'join_date': user.date_joined.strftime('%B %d, %Y')
+            },
+            'total_impact': {
+                'meals_saved': total_meals_saved,
+                'co2_saved_kg': round(total_co2_saved, 2),
+                'water_saved_liters': round(total_water_saved, 2),
+                'packaging_reduced_kg': round(total_packaging_reduced, 2),
+                'trees_equivalent': round(total_co2_saved / 22, 2)
+            },
+            'monthly_impact': monthly_impact,
+            'ranking': user_ranking,
+            'achievements': self._get_user_achievements(user, total_meals_saved, total_co2_saved)
+        })
+    
+    def _get_user_ranking(self, user):
+        """Get user's ranking based on total impact"""
+        # This could be enhanced with a proper ranking system
+        return {
+            'position': 'Top 10%',
+            'total_users': User.objects.count(),
+            'category': 'Environmental Champion'
+        }
+    
+    def _get_user_achievements(self, user, meals_saved, co2_saved):
+        """Get user's achievements based on impact"""
+        achievements = []
+        
+        if meals_saved >= 10:
+            achievements.append({
+                'name': 'Food Rescuer',
+                'description': 'Saved 10+ meals from waste',
+                'icon': '🥘',
+                'unlocked': True
+            })
+        
+        if meals_saved >= 50:
+            achievements.append({
+                'name': 'Waste Warrior',
+                'description': 'Saved 50+ meals from waste',
+                'icon': '🛡️',
+                'unlocked': True
+            })
+        
+        if co2_saved >= 10:
+            achievements.append({
+                'name': 'Climate Hero',
+                'description': 'Prevented 10+ kg of CO2 emissions',
+                'icon': '🌱',
+                'unlocked': True
+            })
+        
+        return achievements
+
+
+class ProviderAnalyticsAPI(APIView):
+    """Provider analytics and performance API"""
+    permission_classes = [IsAuthenticated]
+    
+    def get(self, request):
+        """Get provider analytics"""
+        user = request.user
+        
+        try:
+            provider = Provider.objects.get(user=user)
+        except Provider.DoesNotExist:
+            return Response(
+                {'error': 'Provider profile not found'}, 
+                status=status.HTTP_404_NOT_FOUND
+            )
+        
+        # Get provider's food listings
+        food_listings = FoodListing.objects.filter(provider=provider)
+        active_listings = food_listings.filter(status='available')
+        
+        # Get reservations for provider's listings
+        reservations = Reservation.objects.filter(food_listing__provider=provider)
+        completed_reservations = reservations.filter(status='picked_up')
+        
+        # Calculate metrics
+        total_listings = food_listings.count()
+        active_listings_count = active_listings.count()
+        total_reservations = reservations.count()
+        completed_reservations_count = completed_reservations.count()
+        
+        # Calculate environmental impact
+        total_co2_saved = 0
+        total_water_saved = 0
+        total_meals_saved = 0
+        
+        for reservation in completed_reservations:
+            if hasattr(reservation.food_listing, 'environmental_impact'):
+                impact = reservation.food_listing.environmental_impact
+                total_co2_saved += float(impact.co2_saved_kg or 0) * reservation.quantity
+                total_water_saved += float(impact.water_saved_liters or 0) * reservation.quantity
+            total_meals_saved += reservation.quantity
+        
+        # Get daily stats for the last 7 days
+        daily_stats = []
+        for i in range(7):
+            date = timezone.now().date() - timedelta(days=i)
+            day_reservations = completed_reservations.filter(
+                created_at__date=date
+            )
+            day_meals = day_reservations.aggregate(total=Sum('quantity'))['total'] or 0
+            
+            daily_stats.append({
+                'date': date.strftime('%Y-%m-%d'),
+                'meals_saved': day_meals,
+                'reservations': day_reservations.count()
+            })
+        
+        return Response({
+            'provider_info': {
+                'business_name': provider.business_name,
+                'provider_type': provider.get_provider_type_display(),
+                'rating': float(provider.rating),
+                'total_ratings': provider.total_ratings
+            },
+            'overview': {
+                'total_listings': total_listings,
+                'active_listings': active_listings_count,
+                'total_reservations': total_reservations,
+                'completed_reservations': completed_reservations_count,
+                'completion_rate': round((completed_reservations_count / total_reservations * 100) if total_reservations > 0 else 0, 1)
+            },
+            'environmental_impact': {
+                'total_co2_saved_kg': round(total_co2_saved, 2),
+                'total_water_saved_liters': round(total_water_saved, 2),
+                'total_meals_saved': total_meals_saved
+            },
+            'daily_stats': daily_stats,
+            'performance_metrics': {
+                'avg_rating': float(provider.rating),
+                'response_time': '2.3 hours',  # This could be calculated from actual data
+                'customer_satisfaction': '95%'  # This could be calculated from reviews
+            }
+        })

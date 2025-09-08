@@ -17,4 +17,9 @@ router.register(r'ai-chat', views.AIChatViewSet, basename='ai-chat')
 urlpatterns = [
     path('', include(router.urls)),
     path('dashboard/', views.DashboardView.as_view(), name='dashboard'),
+    
+    # New API endpoints
+    path('search/food/', views.FoodSearchAPI.as_view(), name='food-search'),
+    path('users/statistics/', views.UserStatisticsAPI.as_view(), name='user-statistics'),
+    path('providers/analytics/', views.ProviderAnalyticsAPI.as_view(), name='provider-analytics'),
 ] 
