@@ -1,7 +1,7 @@
 import React from 'react';
 import { Menu, Bot, Bell } from 'lucide-react';
 
-const Header = ({ onMenuToggle, onAIChatToggle, onNotificationsToggle, notifications = [], isLargeScreen = true }) => {
+const Header = ({ onMenuToggle, onAIChatToggle, onNotificationsToggle, onHomeClick, notifications = [], isLargeScreen = true, userRole = 'end-user' }) => {
   return (
     <div className="bg-white border-b border-gray-200 fixed top-0 left-0 right-0 z-40">
       <div className="flex items-center justify-between px-4 py-3">
@@ -24,6 +24,15 @@ const Header = ({ onMenuToggle, onAIChatToggle, onNotificationsToggle, notificat
             className="p-2 rounded-lg bg-green-500 text-white hover:bg-green-600 transition-colors duration-200"
           >
             <Bot size={20} />
+          </button>
+
+          {/* Home Button */}
+          <button
+            onClick={onHomeClick}
+            className="p-2 rounded-lg hover:bg-gray-100 transition-colors duration-200"
+            title="Go to Home"
+          >
+            <span className="text-lg">🏠</span>
           </button>
 
           {/* Notifications Button */}

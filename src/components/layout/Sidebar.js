@@ -5,14 +5,13 @@ import {
 } from 'lucide-react';
 
 const Sidebar = ({ 
-  userRole, 
-  onRoleChange, 
-  onViewChange, 
-  showMenu, 
-  onMenuToggle, 
-  menuSticky, 
-  onMenuStickyToggle,
-  isLargeScreen
+  isOpen,
+  onClose,
+  currentView,
+  onViewChange,
+  onAdminPanelOpen,
+  userRole,
+  onRoleChange
 }) => {
   const userPanels = {
     restaurant: { icon: ChefHat, title: "Restaurant", color: "bg-orange-500" },
@@ -32,17 +31,12 @@ const Sidebar = ({
         <div className="flex justify-between items-center">
           <h2 className="text-lg font-bold">Menu</h2>
           <div className="flex items-center space-x-2">
-            <button 
-              onClick={onMenuStickyToggle} 
-              className={`p-1 hover:bg-green-700 rounded ${menuSticky ? 'bg-green-700' : ''}`}
-            >
+            <button className="p-1 hover:bg-green-700 rounded">
               📌
             </button>
-            {!isLargeScreen && (
-              <button onClick={onMenuToggle}>
-                <X size={20} />
-              </button>
-            )}
+            <button onClick={onClose}>
+              <X size={20} />
+            </button>
           </div>
         </div>
       </div>
@@ -57,9 +51,10 @@ const Sidebar = ({
                 <button 
                   key={key} 
                   onClick={() => { 
-                    onRoleChange(key); 
+                    console.log('Switching to role:', key);
+                    onRoleChange(key);
                     onViewChange('home'); 
-                    if (!menuSticky && !isLargeScreen) onMenuToggle(); 
+                    onClose(); 
                   }} 
                   className={`w-full flex items-center space-x-3 p-3 rounded-lg hover:bg-gray-100 transition-colors ${
                     userRole === key ? 'bg-green-50 border border-green-200' : ''
@@ -77,52 +72,14 @@ const Sidebar = ({
             })}
           </div>
         </div>
-
-        <div className="border-t border-gray-200 my-4"></div>
-        
-        {[
-          { view: 'about', icon: 'ℹ️', label: 'About KindBite', color: 'bg-blue-100' },
-          { view: 'partners', icon: '🤝', label: 'Our Partners', color: 'bg-indigo-100' },
-          { view: 'environment', icon: '🌱', label: 'Environmental Impact', color: 'bg-green-100' },
-          { view: 'news', icon: Calendar, label: 'News & Celebrations', color: 'bg-yellow-100' },
-          { view: 'chat', icon: MessageCircle, label: 'Messages & Friends', color: 'bg-green-100' },
-          { view: 'panels', icon: Users, label: 'User Panels', color: 'bg-purple-100' }
-        ].map(({ view, icon, label, color }) => (
-          <button 
-            key={view}
-            onClick={() => { 
-              onViewChange(view); 
-              if (!menuSticky && !isLargeScreen) onMenuToggle(); 
-            }} 
-            className="w-full text-left p-3 hover:bg-gray-100 rounded-lg flex items-center space-x-3"
-          >
-            <div className={`w-8 h-8 ${color} rounded-full flex items-center justify-center`}>
-              {typeof icon === 'string' ? (
-                <span className="text-blue-600 font-bold text-sm">{icon}</span>
-              ) : (
-                <icon size={16} className="text-yellow-600" />
-              )}
-            </div>
-            <span className="text-gray-700">{label}</span>
-          </button>
-        ))}
       </div>
     </div>
   );
 
-  // Desktop: always visible sidebar, Mobile: slide-out menu
-  if (isLargeScreen) {
-    return (
-      <div className="fixed left-0 top-0 h-full w-64 bg-white shadow-lg overflow-y-auto z-30">
-        {sidebarContent}
-      </div>
-    );
-  }
-
   // Mobile: slide-out menu
   return (
-    showMenu && (
-      <div className={`fixed inset-0 z-50 ${menuSticky ? '' : 'bg-black bg-opacity-50'}`} onClick={menuSticky ? undefined : onMenuToggle}>
+    isOpen && (
+      <div className="fixed inset-0 z-50 bg-black bg-opacity-50" onClick={onClose}>
         <div className="fixed left-0 top-0 h-full w-80 bg-white shadow-lg overflow-y-auto" onClick={e => e.stopPropagation()}>
           {sidebarContent}
         </div>

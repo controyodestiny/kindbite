@@ -221,6 +221,12 @@ class ApiService {
         return this.getMockProfile();
       case 'user-stats':
         return this.getMockUserStats();
+      case 'users':
+        return this.getMockUsers();
+      case 'reviews':
+        return this.getMockReviews();
+      case 'reservations':
+        return this.getMockReservations();
       default:
         return [];
     }
@@ -504,6 +510,108 @@ class ApiService {
     };
   }
 
+  getMockUsers() {
+    return [
+      {
+        id: 1,
+        username: "john_doe",
+        email: "john.doe@email.com",
+        role: "end-user",
+        kind_coins: 245,
+        is_verified: true,
+        created_at: "2024-01-15T10:30:00Z"
+      },
+      {
+        id: 2,
+        username: "sarah_kitchen",
+        email: "sarah@mamaskitchen.com",
+        role: "restaurant",
+        kind_coins: 1200,
+        is_verified: true,
+        created_at: "2024-01-10T08:15:00Z"
+      },
+      {
+        id: 3,
+        username: "green_market",
+        email: "info@greenmarket.ug",
+        role: "supermarket",
+        kind_coins: 890,
+        is_verified: true,
+        created_at: "2024-01-05T14:20:00Z"
+      },
+      {
+        id: 4,
+        username: "mike_verifier",
+        email: "mike@foodverify.ug",
+        role: "verifier",
+        kind_coins: 2100,
+        is_verified: true,
+        created_at: "2024-01-01T09:45:00Z"
+      }
+    ];
+  }
+
+  getMockReviews() {
+    return [
+      {
+        id: 1,
+        user: "john_doe",
+        food_listing: "Fresh Sourdough Bread",
+        rating: 5,
+        comment: "Amazing bread! Very fresh and delicious.",
+        created_at: "2024-01-20T15:30:00Z"
+      },
+      {
+        id: 2,
+        user: "jane_smith",
+        food_listing: "Mixed Vegetable Stir Fry",
+        rating: 4,
+        comment: "Great vegetables, very fresh.",
+        created_at: "2024-01-19T12:15:00Z"
+      },
+      {
+        id: 3,
+        user: "bob_wilson",
+        food_listing: "Chicken Curry with Rice",
+        rating: 5,
+        comment: "Excellent curry, highly recommend!",
+        created_at: "2024-01-18T18:45:00Z"
+      }
+    ];
+  }
+
+  getMockReservations() {
+    return [
+      {
+        id: 1,
+        user: "john_doe",
+        food_listing: "Fresh Sourdough Bread",
+        quantity: 2,
+        status: "confirmed",
+        pickup_time: "2024-01-21T16:00:00Z",
+        created_at: "2024-01-20T10:30:00Z"
+      },
+      {
+        id: 2,
+        user: "jane_smith",
+        food_listing: "Mixed Vegetable Stir Fry",
+        quantity: 1,
+        status: "pending",
+        pickup_time: "2024-01-21T18:00:00Z",
+        created_at: "2024-01-20T14:15:00Z"
+      },
+      {
+        id: 3,
+        user: "bob_wilson",
+        food_listing: "Chicken Curry with Rice",
+        quantity: 3,
+        status: "completed",
+        pickup_time: "2024-01-19T19:00:00Z",
+        created_at: "2024-01-19T11:20:00Z"
+      }
+    ];
+  }
+
   // Fallback method for development
   async getDataWithFallback(endpoint, mockType) {
     try {
@@ -536,6 +644,27 @@ class ApiService {
       console.error('Failed to load from localStorage:', error);
       return null;
     }
+  }
+
+  // Admin methods
+  async deleteItem(endpoint) {
+    return this.request(endpoint, {
+      method: 'DELETE',
+    });
+  }
+
+  async createItem(endpoint, data) {
+    return this.request(endpoint, {
+      method: 'POST',
+      body: JSON.stringify(data),
+    });
+  }
+
+  async updateItem(endpoint, data) {
+    return this.request(endpoint, {
+      method: 'PUT',
+      body: JSON.stringify(data),
+    });
   }
 }
 
