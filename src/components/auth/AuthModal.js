@@ -16,6 +16,7 @@ const AuthModal = ({ isOpen, onClose, onLogin, onRegister }) => {
       onClose();
     } catch (error) {
       console.error('Login error:', error);
+      // Error toast is handled in AuthContext
     } finally {
       setIsLoading(false);
     }
@@ -28,6 +29,7 @@ const AuthModal = ({ isOpen, onClose, onLogin, onRegister }) => {
       onClose();
     } catch (error) {
       console.error('Registration error:', error);
+      // Error toast is handled in AuthContext
     } finally {
       setIsLoading(false);
     }

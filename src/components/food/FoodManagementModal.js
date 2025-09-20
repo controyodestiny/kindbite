@@ -1,31 +1,83 @@
-import React, { useState } from 'react';
-import { X, Plus, Edit, Trash2, Eye } from 'lucide-react';
-import AddFoodForm from './AddFoodForm';
+import React, { useState, useEffect } from 'react';
+import { X, Plus, Edit, Trash2, Eye, RefreshCw } from 'lucide-react';
+import AddFoodModal from './AddFoodModal';
+import EditFoodModal from './EditFoodModal';
+import DeleteFoodModal from './DeleteFoodModal';
+import foodService from '../../services/foodService';
+import { useToast } from '../../contexts/ToastContext';
 
 const FoodManagementModal = ({ isOpen, onClose, user, userFoodListings, onAddFood, onUpdateFood, onDeleteFood }) => {
-  const [showAddForm, setShowAddForm] = useState(false);
+  const [showAddModal, setShowAddModal] = useState(false);
+  const [showEditModal, setShowEditModal] = useState(false);
+  const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [editingFood, setEditingFood] = useState(null);
+  const [deletingFood, setDeletingFood] = useState(null);
+  const [isLoading, setIsLoading] = useState(false);
+  const [foodStats, setFoodStats] = useState(null);
+  const toast = useToast();
 
-  if (!isOpen) return null;
+  // Load food statistics when modal opens
+  useEffect(() => {
+    if (isOpen && user) {
+      loadFoodStats();
+    }
+  }, [isOpen, user]);
+
+  const loadFoodStats = async () => {
+    try {
+      const stats = await foodService.getFoodStats();
+      setFoodStats(stats);
+    } catch (error) {
+      console.error('Failed to load food stats:', error);
+    }
+  };
 
   const handleAddFood = (newFood) => {
     onAddFood(newFood);
-    setShowAddForm(false);
+    setShowAddModal(false);
+    loadFoodStats(); // Refresh stats
   };
 
   const handleEditFood = (food) => {
     setEditingFood(food);
-    setShowAddForm(true);
+    setShowEditModal(true);
   };
 
-  const handleDeleteFood = (foodId) => {
-    if (window.confirm('Are you sure you want to delete this food item?')) {
-      onDeleteFood(foodId);
+  const handleUpdateFood = (updatedFood) => {
+    onUpdateFood(updatedFood);
+    setShowEditModal(false);
+    setEditingFood(null);
+    loadFoodStats(); // Refresh stats
+  };
+
+  const handleDeleteFood = (food) => {
+    setDeletingFood(food);
+    setShowDeleteModal(true);
+  };
+
+  const handleConfirmDelete = (foodId) => {
+    onDeleteFood(foodId);
+    setShowDeleteModal(false);
+    setDeletingFood(null);
+    loadFoodStats(); // Refresh stats
+  };
+
+  const handleRefresh = async () => {
+    setIsLoading(true);
+    try {
+      await loadFoodStats();
+      toast.success('Food listings refreshed!');
+    } catch (error) {
+      toast.error('Failed to refresh food listings');
+    } finally {
+      setIsLoading(false);
     }
   };
 
+  if (!isOpen) return null;
+
   const getRoleSpecificTitle = () => {
-    switch(user?.userRole) {
+    switch(user?.user_role) {
       case 'restaurant': return 'Restaurant Menu Management';
       case 'home': return 'Home Kitchen Management';
       case 'factory': return 'Factory Production Management';
@@ -45,17 +97,7 @@ const FoodManagementModal = ({ isOpen, onClose, user, userFoodListings, onAddFoo
           WebkitScrollbar: { display: 'none' }
         }}
       >
-        {showAddForm ? (
-          <AddFoodForm
-            user={user}
-            onClose={() => {
-              setShowAddForm(false);
-              setEditingFood(null);
-            }}
-            onAddFood={handleAddFood}
-            editingFood={editingFood}
-          />
-        ) : (
+        {/* Main Food Management Interface */}
           <div className="bg-white rounded-lg shadow-lg p-4 w-full max-w-4xl mx-auto relative">
             <button
               onClick={onClose}
@@ -67,38 +109,48 @@ const FoodManagementModal = ({ isOpen, onClose, user, userFoodListings, onAddFoo
             <div className="text-center mb-6">
               <h2 className="text-2xl font-bold text-gray-800">{getRoleSpecificTitle()}</h2>
               <p className="text-gray-600">Manage your food listings</p>
+              <button
+                onClick={handleRefresh}
+                disabled={isLoading}
+                className="mt-2 px-3 py-1 bg-gray-100 text-gray-600 rounded-lg hover:bg-gray-200 transition-colors flex items-center space-x-1 mx-auto disabled:opacity-50"
+              >
+                <RefreshCw className={`w-4 h-4 ${isLoading ? 'animate-spin' : ''}`} />
+                <span>Refresh</span>
+              </button>
             </div>
 
             {/* Stats Overview */}
             <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
               <div className="bg-green-50 rounded-lg p-4 text-center">
-                <div className="text-2xl font-bold text-green-600">{userFoodListings.length}</div>
+                <div className="text-2xl font-bold text-green-600">
+                  {foodStats?.total_listings || userFoodListings.length}
+                </div>
                 <div className="text-sm text-green-600">Total Items</div>
               </div>
               <div className="bg-blue-50 rounded-lg p-4 text-center">
                 <div className="text-2xl font-bold text-blue-600">
-                  {userFoodListings.reduce((sum, food) => sum + food.quantity, 0)}
+                  {foodStats?.active_listings || userFoodListings.filter(f => f.isAvailable).length}
                 </div>
-                <div className="text-sm text-blue-600">Total Quantity</div>
+                <div className="text-sm text-blue-600">Active Items</div>
               </div>
               <div className="bg-purple-50 rounded-lg p-4 text-center">
                 <div className="text-2xl font-bold text-purple-600">
-                  {userFoodListings.reduce((sum, food) => sum + food.co2Saved, 0).toFixed(1)}kg
+                  {foodStats?.total_co2_saved || userFoodListings.reduce((sum, food) => sum + (food.co2Saved || 0), 0).toFixed(1)}kg
                 </div>
                 <div className="text-sm text-purple-600">CO₂ Saved</div>
               </div>
               <div className="bg-orange-50 rounded-lg p-4 text-center">
                 <div className="text-2xl font-bold text-orange-600">
-                  UGX {userFoodListings.reduce((sum, food) => sum + (food.originalPrice - food.discountedPrice), 0).toLocaleString()}
+                  {foodStats?.total_kindcoins_earned || 0}
                 </div>
-                <div className="text-sm text-orange-600">Total Savings</div>
+                <div className="text-sm text-orange-600">KindCoins Earned</div>
               </div>
             </div>
 
             {/* Add New Food Button */}
             <div className="mb-6">
               <button
-                onClick={() => setShowAddForm(true)}
+                onClick={() => setShowAddModal(true)}
                 className="w-full bg-green-600 text-white py-3 rounded-lg font-semibold hover:bg-green-700 transition-colors flex items-center justify-center space-x-2"
               >
                 <Plus size={20} />
@@ -126,8 +178,8 @@ const FoodManagementModal = ({ isOpen, onClose, user, userFoodListings, onAddFoo
                             <p className="text-gray-600 text-sm">{food.description}</p>
                             <div className="flex items-center space-x-4 mt-2 text-sm text-gray-500">
                               <span>📍 {food.location}</span>
-                              <span>🕒 {food.pickupWindow}</span>
-                              <span>📦 {food.quantity} available</span>
+                              <span>🕒 {food.pickupWindow || `${food.pickupDate} ${food.pickupWindowStart}-${food.pickupWindowEnd}`}</span>
+                              <span>📦 {food.availableQuantity || food.quantity} available</span>
                             </div>
                           </div>
                           <div className="text-right">
@@ -144,14 +196,14 @@ const FoodManagementModal = ({ isOpen, onClose, user, userFoodListings, onAddFoo
                         
                         <div className="flex items-center justify-between mt-3">
                           <div className="flex space-x-1">
-                            {food.dietary.map((tag, index) => (
+                            {(food.dietary || food.dietary_info || []).map((tag, index) => (
                               <span key={index} className="bg-gray-200 text-gray-600 px-2 py-1 rounded-full text-xs">
                                 {tag}
                               </span>
                             ))}
                           </div>
                           <div className="text-sm text-green-600">
-                            🌱 {food.co2Saved}kg CO₂ saved
+                            🌱 {food.co2Saved || 0}kg CO₂ saved
                           </div>
                         </div>
                       </div>
@@ -167,7 +219,7 @@ const FoodManagementModal = ({ isOpen, onClose, user, userFoodListings, onAddFoo
                         <span>Edit</span>
                       </button>
                       <button
-                        onClick={() => handleDeleteFood(food.id)}
+                        onClick={() => handleDeleteFood(food)}
                         className="px-3 py-1 bg-red-100 text-red-600 rounded-lg text-sm hover:bg-red-200 transition-colors flex items-center space-x-1"
                       >
                         <Trash2 size={14} />
@@ -179,7 +231,33 @@ const FoodManagementModal = ({ isOpen, onClose, user, userFoodListings, onAddFoo
               )}
             </div>
           </div>
-        )}
+
+        {/* Modals */}
+        <AddFoodModal
+          isOpen={showAddModal}
+          onClose={() => setShowAddModal(false)}
+          onFoodAdded={handleAddFood}
+        />
+
+        <EditFoodModal
+          isOpen={showEditModal}
+          onClose={() => {
+            setShowEditModal(false);
+            setEditingFood(null);
+          }}
+          onFoodUpdated={handleUpdateFood}
+          foodItem={editingFood}
+        />
+
+        <DeleteFoodModal
+          isOpen={showDeleteModal}
+          onClose={() => {
+            setShowDeleteModal(false);
+            setDeletingFood(null);
+          }}
+          onFoodDeleted={handleConfirmDelete}
+          foodItem={deletingFood}
+        />
       </div>
     </div>
   );

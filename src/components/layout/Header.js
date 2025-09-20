@@ -46,8 +46,8 @@ const Header = ({ title, onMenuToggle, onAIChatToggle, notifications, isLargeScr
         {user ? (
           <div className="flex items-center space-x-2">
             <div className="text-right">
-              <div className="text-sm font-medium">{user.firstName} {user.lastName}</div>
-              <div className="text-xs text-green-100">{user.userRole}</div>
+              <div className="text-sm font-medium">{user.first_name} {user.last_name}</div>
+              <div className="text-xs text-green-100">{user.user_role}</div>
             </div>
             <button 
               onClick={logout}

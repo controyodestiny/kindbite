@@ -1,4 +1,7 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
+import apiService from '../services/apiService';
+import { STORAGE_KEYS } from '../config/api';
+import { useToast } from './ToastContext';
 
 const AuthContext = createContext();
 
@@ -14,20 +17,31 @@ export const AuthProvider = ({ children }) => {
   const [user, setUser] = useState(null);
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
+  const toast = useToast();
 
   // Check for existing session on app load
   useEffect(() => {
-    const checkAuthStatus = () => {
+    const checkAuthStatus = async () => {
       try {
-        const savedUser = localStorage.getItem('kindbite_user');
-        if (savedUser) {
-          const userData = JSON.parse(savedUser);
-          setUser(userData);
-          setIsAuthenticated(true);
+        const savedUser = localStorage.getItem(STORAGE_KEYS.USER);
+        const accessToken = localStorage.getItem(STORAGE_KEYS.ACCESS_TOKEN);
+        
+        if (savedUser && accessToken) {
+          // Verify token is still valid
+          try {
+            const currentUser = await apiService.getCurrentUser();
+            setUser(currentUser);
+            setIsAuthenticated(true);
+          } catch (error) {
+            // Token invalid, clear storage
+            console.error('Token validation failed:', error);
+            localStorage.removeItem(STORAGE_KEYS.USER);
+            localStorage.removeItem(STORAGE_KEYS.ACCESS_TOKEN);
+            localStorage.removeItem(STORAGE_KEYS.REFRESH_TOKEN);
+          }
         }
       } catch (error) {
         console.error('Error checking auth status:', error);
-        localStorage.removeItem('kindbite_user');
       } finally {
         setIsLoading(false);
       }
@@ -38,137 +52,81 @@ export const AuthProvider = ({ children }) => {
 
   const login = async (loginData) => {
     try {
-      // Simulate API call - replace with actual authentication
-      await new Promise(resolve => setTimeout(resolve, 1000));
+      const response = await apiService.login(loginData);
       
-      // Mock user data based on email (in real app, this would come from API)
-      const mockUsers = {
-        'restaurant@kindbite.com': {
-          id: 1,
-          firstName: 'John',
-          lastName: 'Restaurant',
-          email: 'restaurant@kindbite.com',
-          userRole: 'restaurant',
-          businessName: "Mama's Kitchen",
-          location: 'Kampala, Uganda',
-          phone: '+256 700 123 456',
-          kindCoins: 340,
-          joinDate: '2024-01-15',
-          profileImage: null
-        },
-        'factory@kindbite.com': {
-          id: 2,
-          firstName: 'Sarah',
-          lastName: 'Factory',
-          email: 'factory@kindbite.com',
-          userRole: 'factory',
-          businessName: 'Uganda Food Industries',
-          location: 'Kampala, Uganda',
-          phone: '+256 700 234 567',
-          kindCoins: 2840,
-          joinDate: '2024-01-10',
-          profileImage: null
-        },
-        'home@kindbite.com': {
-          id: 3,
-          firstName: 'Mary',
-          lastName: 'Home',
-          email: 'home@kindbite.com',
-          userRole: 'home',
-          businessName: 'The Nakasero Home',
-          location: 'Kampala, Uganda',
-          phone: '+256 700 345 678',
-          kindCoins: 340,
-          joinDate: '2024-01-20',
-          profileImage: null
-        },
-        'user@kindbite.com': {
-          id: 4,
-          firstName: 'Roshni',
-          lastName: 'L.',
-          email: 'user@kindbite.com',
-          userRole: 'end-user',
-          businessName: null,
-          location: 'Kampala, Uganda',
-          phone: '+256 700 456 789',
-          kindCoins: 245,
-          joinDate: '2024-01-25',
-          profileImage: null
-        }
-      };
-
-      const userData = mockUsers[loginData.email] || {
-        id: Date.now(),
-        firstName: 'Demo',
-        lastName: 'User',
-        email: loginData.email,
-        userRole: 'end-user',
-        businessName: null,
-        location: 'Kampala, Uganda',
-        phone: '+256 700 000 000',
-        kindCoins: 100,
-        joinDate: new Date().toISOString().split('T')[0],
-        profileImage: null
-      };
-
-      setUser(userData);
+      // Store tokens and user data
+      if (response.access) {
+        localStorage.setItem(STORAGE_KEYS.ACCESS_TOKEN, response.access);
+      }
+      if (response.refresh) {
+        localStorage.setItem(STORAGE_KEYS.REFRESH_TOKEN, response.refresh);
+      }
+      if (response.user) {
+        localStorage.setItem(STORAGE_KEYS.USER, JSON.stringify(response.user));
+        setUser(response.user);
+      }
+      
       setIsAuthenticated(true);
-      localStorage.setItem('kindbite_user', JSON.stringify(userData));
-      
-      return { success: true, user: userData };
+      toast.success(`Welcome back, ${response.user.first_name}!`);
+      return { success: true, user: response.user };
     } catch (error) {
       console.error('Login error:', error);
-      throw new Error('Login failed. Please try again.');
+      toast.error(error.message || 'Login failed. Please try again.');
+      throw new Error(error.message || 'Login failed. Please try again.');
     }
   };
 
   const register = async (registerData) => {
     try {
-      // Simulate API call - replace with actual registration
-      await new Promise(resolve => setTimeout(resolve, 1500));
+      const response = await apiService.register(registerData);
       
-      const newUser = {
-        id: Date.now(),
-        firstName: registerData.firstName,
-        lastName: registerData.lastName,
-        email: registerData.email,
-        userRole: registerData.userRole,
-        businessName: registerData.businessName || null,
-        location: registerData.location,
-        phone: registerData.phone,
-        kindCoins: 0,
-        joinDate: new Date().toISOString().split('T')[0],
-        profileImage: null
-      };
-
-      setUser(newUser);
+      // Store tokens and user data
+      if (response.tokens) {
+        localStorage.setItem(STORAGE_KEYS.ACCESS_TOKEN, response.tokens.access);
+        localStorage.setItem(STORAGE_KEYS.REFRESH_TOKEN, response.tokens.refresh);
+      }
+      if (response.user) {
+        localStorage.setItem(STORAGE_KEYS.USER, JSON.stringify(response.user));
+        setUser(response.user);
+      }
+      
       setIsAuthenticated(true);
-      localStorage.setItem('kindbite_user', JSON.stringify(newUser));
-      
-      return { success: true, user: newUser };
+      toast.success(`Welcome to KindBite, ${response.user.first_name}! Your account has been created successfully.`);
+      return { success: true, user: response.user };
     } catch (error) {
       console.error('Registration error:', error);
-      throw new Error('Registration failed. Please try again.');
+      toast.error(error.message || 'Registration failed. Please try again.');
+      throw new Error(error.message || 'Registration failed. Please try again.');
     }
   };
 
   const logout = () => {
     setUser(null);
     setIsAuthenticated(false);
-    localStorage.removeItem('kindbite_user');
+    localStorage.removeItem(STORAGE_KEYS.USER);
+    localStorage.removeItem(STORAGE_KEYS.ACCESS_TOKEN);
+    localStorage.removeItem(STORAGE_KEYS.REFRESH_TOKEN);
+    toast.info('You have been logged out successfully.');
   };
 
-  const updateUser = (updates) => {
-    const updatedUser = { ...user, ...updates };
-    setUser(updatedUser);
-    localStorage.setItem('kindbite_user', JSON.stringify(updatedUser));
+  const updateUser = async (updates) => {
+    try {
+      const response = await apiService.updateCurrentUser(updates);
+      const updatedUser = { ...user, ...response };
+      setUser(updatedUser);
+      localStorage.setItem(STORAGE_KEYS.USER, JSON.stringify(updatedUser));
+      return updatedUser;
+    } catch (error) {
+      console.error('Update user error:', error);
+      throw error;
+    }
   };
 
   const updateKindCoins = (amount) => {
     if (user) {
-      const updatedUser = { ...user, kindCoins: user.kindCoins + amount };
+      const updatedUser = { ...user, kind_coins: (user.kind_coins || 0) + amount };
       setUser(updatedUser);
-      localStorage.setItem('kindbite_user', JSON.stringify(updatedUser));
+      localStorage.setItem(STORAGE_KEYS.USER, JSON.stringify(updatedUser));
     }
   };
 

@@ -3,15 +3,15 @@ import { Eye, EyeOff, Mail, Lock, User, MapPin, Building, Phone, UserPlus, X } f
 
 const RegisterForm = ({ onRegister, onSwitchToLogin, isLoading, onClose }) => {
   const [formData, setFormData] = useState({
-    firstName: '',
-    lastName: '',
+    first_name: '',
+    last_name: '',
     email: '',
     password: '',
-    confirmPassword: '',
+    confirm_password: '',
     phone: '',
     location: '',
-    businessName: '',
-    userRole: 'end-user'
+    business_name: '',
+    user_role: 'end-user'
   });
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
@@ -47,12 +47,12 @@ const RegisterForm = ({ onRegister, onSwitchToLogin, isLoading, onClose }) => {
   const validateForm = () => {
     const newErrors = {};
     
-    if (!formData.firstName.trim()) {
-      newErrors.firstName = 'First name is required';
+    if (!formData.first_name.trim()) {
+      newErrors.first_name = 'First name is required';
     }
     
-    if (!formData.lastName.trim()) {
-      newErrors.lastName = 'Last name is required';
+    if (!formData.last_name.trim()) {
+      newErrors.last_name = 'Last name is required';
     }
     
     if (!formData.email) {
@@ -67,8 +67,8 @@ const RegisterForm = ({ onRegister, onSwitchToLogin, isLoading, onClose }) => {
       newErrors.password = 'Password must be at least 6 characters';
     }
     
-    if (formData.password !== formData.confirmPassword) {
-      newErrors.confirmPassword = 'Passwords do not match';
+    if (formData.password !== formData.confirm_password) {
+      newErrors.confirm_password = 'Passwords do not match';
     }
     
     if (!formData.phone.trim()) {
@@ -81,8 +81,8 @@ const RegisterForm = ({ onRegister, onSwitchToLogin, isLoading, onClose }) => {
     
     // Business name required for business roles
     const businessRoles = ['restaurant', 'factory', 'supermarket', 'retail'];
-    if (businessRoles.includes(formData.userRole) && !formData.businessName.trim()) {
-      newErrors.businessName = 'Business name is required for this role';
+    if (businessRoles.includes(formData.user_role) && !formData.business_name.trim()) {
+      newErrors.business_name = 'Business name is required for this role';
     }
     
     setErrors(newErrors);
@@ -124,17 +124,17 @@ const RegisterForm = ({ onRegister, onSwitchToLogin, isLoading, onClose }) => {
               <User className="absolute left-3 top-3 text-gray-400 w-5 h-5" />
               <input
                 type="text"
-                name="firstName"
-                value={formData.firstName}
+                name="first_name"
+                value={formData.first_name}
                 onChange={handleChange}
                 className={`w-full pl-10 pr-4 py-3 border rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500 ${
-                  errors.firstName ? 'border-red-500' : 'border-gray-300'
+                  errors.first_name ? 'border-red-500' : 'border-gray-300'
                 }`}
                 placeholder="Enter your first name"
               />
             </div>
-            {errors.firstName && (
-              <p className="text-red-500 text-sm mt-1">{errors.firstName}</p>
+            {errors.first_name && (
+              <p className="text-red-500 text-sm mt-1">{errors.first_name}</p>
             )}
           </div>
 
@@ -146,17 +146,17 @@ const RegisterForm = ({ onRegister, onSwitchToLogin, isLoading, onClose }) => {
               <User className="absolute left-3 top-3 text-gray-400 w-5 h-5" />
               <input
                 type="text"
-                name="lastName"
-                value={formData.lastName}
+                name="last_name"
+                value={formData.last_name}
                 onChange={handleChange}
                 className={`w-full pl-10 pr-4 py-3 border rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500 ${
-                  errors.lastName ? 'border-red-500' : 'border-gray-300'
+                  errors.last_name ? 'border-red-500' : 'border-gray-300'
                 }`}
                 placeholder="Enter your last name"
               />
             </div>
-            {errors.lastName && (
-              <p className="text-red-500 text-sm mt-1">{errors.lastName}</p>
+            {errors.last_name && (
+              <p className="text-red-500 text-sm mt-1">{errors.last_name}</p>
             )}
           </div>
         </div>
@@ -232,7 +232,7 @@ const RegisterForm = ({ onRegister, onSwitchToLogin, isLoading, onClose }) => {
         </div>
 
         {/* Business Name (conditional) */}
-        {['restaurant', 'factory', 'supermarket', 'retail'].includes(formData.userRole) && (
+        {['restaurant', 'factory', 'supermarket', 'retail'].includes(formData.user_role) && (
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">
               Business Name
@@ -241,17 +241,17 @@ const RegisterForm = ({ onRegister, onSwitchToLogin, isLoading, onClose }) => {
               <Building className="absolute left-3 top-3 text-gray-400 w-5 h-5" />
               <input
                 type="text"
-                name="businessName"
-                value={formData.businessName}
+                name="business_name"
+                value={formData.business_name}
                 onChange={handleChange}
                 className={`w-full pl-10 pr-4 py-3 border rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500 ${
-                  errors.businessName ? 'border-red-500' : 'border-gray-300'
+                  errors.business_name ? 'border-red-500' : 'border-gray-300'
                 }`}
                 placeholder="Enter your business name"
               />
             </div>
-            {errors.businessName && (
-              <p className="text-red-500 text-sm mt-1">{errors.businessName}</p>
+            {errors.business_name && (
+              <p className="text-red-500 text-sm mt-1">{errors.business_name}</p>
             )}
           </div>
         )}
@@ -273,9 +273,9 @@ const RegisterForm = ({ onRegister, onSwitchToLogin, isLoading, onClose }) => {
               <button
                 key={role.value}
                 type="button"
-                onClick={() => setFormData(prev => ({ ...prev, userRole: role.value }))}
+                onClick={() => setFormData(prev => ({ ...prev, user_role: role.value }))}
                 className={`p-1.5 border-2 rounded-lg text-left transition-all ${
-                  formData.userRole === role.value
+                  formData.user_role === role.value
                     ? 'border-green-500 bg-green-50'
                     : 'border-gray-200 hover:border-gray-300'
                 }`}
@@ -331,11 +331,11 @@ const RegisterForm = ({ onRegister, onSwitchToLogin, isLoading, onClose }) => {
               <Lock className="absolute left-3 top-3 text-gray-400 w-5 h-5" />
               <input
                 type={showConfirmPassword ? 'text' : 'password'}
-                name="confirmPassword"
-                value={formData.confirmPassword}
+                name="confirm_password"
+                value={formData.confirm_password}
                 onChange={handleChange}
                 className={`w-full pl-10 pr-12 py-3 border rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500 ${
-                  errors.confirmPassword ? 'border-red-500' : 'border-gray-300'
+                  errors.confirm_password ? 'border-red-500' : 'border-gray-300'
                 }`}
                 placeholder="Confirm your password"
               />
@@ -347,8 +347,8 @@ const RegisterForm = ({ onRegister, onSwitchToLogin, isLoading, onClose }) => {
                 {showConfirmPassword ? <EyeOff size={20} /> : <Eye size={20} />}
               </button>
             </div>
-            {errors.confirmPassword && (
-              <p className="text-red-500 text-sm mt-1">{errors.confirmPassword}</p>
+            {errors.confirm_password && (
+              <p className="text-red-500 text-sm mt-1">{errors.confirm_password}</p>
             )}
           </div>
         </div>

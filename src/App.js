@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { AuthProvider, useAuth } from './contexts/AuthContext';
+import { ToastProvider, useToast } from './contexts/ToastContext';
 import Header from './components/layout/Header';
 import Navigation from './components/layout/Navigation';
 import Sidebar from './components/layout/Sidebar';
@@ -101,6 +102,7 @@ import AboutView from './views/AboutView';
 
 const KindBiteAppContent = () => {
   const { user, isAuthenticated, login, register, updateKindCoins } = useAuth();
+  const toast = useToast();
   
   // State management
   const [currentView, setCurrentView] = useState('home');
@@ -112,8 +114,6 @@ const KindBiteAppContent = () => {
   const [showMenu, setShowMenu] = useState(false);
   const [menuSticky, setMenuSticky] = useState(false);
   const [activeFilter, setActiveFilter] = useState('All');
-  const [aiMessages, setAiMessages] = useState([]);
-  const [aiInput, setAiInput] = useState('');
   const [searchTerm, setSearchTerm] = useState('');
   const [isLargeScreen, setIsLargeScreen] = useState(false);
   const [userFoodListings, setUserFoodListings] = useState([]);
@@ -131,28 +131,15 @@ const KindBiteAppContent = () => {
   }, []);
 
   // Helper functions
-  const sendAIMessage = () => {
-    if (!aiInput.trim()) return;
-    const userMessage = { sender: 'user', text: aiInput, timestamp: new Date() };
-    setAiMessages(prev => [...prev, userMessage]);
-    setTimeout(() => {
-      const aiResponse = { 
-        sender: 'ai', 
-        text: `I can help you with KindBite! For "${aiInput}", I recommend checking nearby restaurants or connecting with a food ambassador in your area.`, 
-        timestamp: new Date() 
-      };
-      setAiMessages(prev => [...prev, aiResponse]);
-    }, 1000);
-    setAiInput('');
-  };
 
   const handleReserve = (food) => {
     if (!isAuthenticated) {
       setShowAuthModal(true);
+      toast.warning('Please login to reserve food items.');
       return;
     }
     
-    alert(`Reserved: ${food.name} from ${food.restaurant}`);
+    toast.success(`Successfully reserved ${food.name} from ${food.restaurant}! You earned 10 KindCoins.`);
     setSelectedFood(null);
     updateKindCoins(10);
   };
@@ -161,20 +148,23 @@ const KindBiteAppContent = () => {
     setUserFoodListings(prev => [...prev, newFood]);
     // Also add to main food listings for display
     foodListings.push(newFood);
+    toast.success('Food item added successfully!');
   };
 
   const handleUpdateFood = (updatedFood) => {
     setUserFoodListings(prev => 
       prev.map(food => food.id === updatedFood.id ? updatedFood : food)
     );
+    toast.success('Food item updated successfully!');
   };
 
   const handleDeleteFood = (foodId) => {
     setUserFoodListings(prev => prev.filter(food => food.id !== foodId));
+    toast.info('Food item removed successfully.');
   };
 
   const getViewTitle = () => {
-    if (currentView === 'home' && user && user.userRole !== 'end-user') {
+    if (currentView === 'home' && user && user.user_role !== 'end-user') {
       const roleTitles = {
         restaurant: 'Restaurant Dashboard',
         home: 'Home Kitchen Dashboard',
@@ -185,7 +175,7 @@ const KindBiteAppContent = () => {
         ambassador: 'Food Ambassador Dashboard',
         donor: 'Donor Dashboard'
       };
-      return roleTitles[user.userRole] || 'Dashboard';
+      return roleTitles[user.user_role] || 'Dashboard';
     }
 
     const viewTitles = {
@@ -206,19 +196,19 @@ const KindBiteAppContent = () => {
 
   // Render current view
   const renderCurrentView = () => {
-    if (currentView === 'home' && user && user.userRole !== 'end-user') {
+    if (currentView === 'home' && user && user.user_role !== 'end-user') {
       return (
         <div className="text-center py-8">
             <div className="text-6xl mb-4">
-              {user.userRole === 'restaurant' ? '🍽️' : 
-               user.userRole === 'home' ? '🏠' : 
-               user.userRole === 'factory' ? '🏭' :
-               user.userRole === 'supermarket' ? '🛒' :
-               user.userRole === 'retail' ? '🏪' :
-               user.userRole === 'verifier' ? '🩺' : 
-               user.userRole === 'ambassador' ? '✅' : '💰'}
+              {user.user_role === 'restaurant' ? '🍽️' : 
+               user.user_role === 'home' ? '🏠' : 
+               user.user_role === 'factory' ? '🏭' :
+               user.user_role === 'supermarket' ? '🛒' :
+               user.user_role === 'retail' ? '🏪' :
+               user.user_role === 'verifier' ? '🩺' : 
+               user.user_role === 'ambassador' ? '✅' : '💰'}
             </div>
-          <h2 className="text-xl font-bold text-gray-800 mb-2">Welcome to {user.userRole} Dashboard</h2>
+          <h2 className="text-xl font-bold text-gray-800 mb-2">Welcome to {user.user_role} Dashboard</h2>
             <p className="text-gray-600 mb-6">This is your specialized dashboard for managing your role in the KindBite ecosystem.</p>
             
             {/* Quick Actions */}
@@ -237,19 +227,19 @@ const KindBiteAppContent = () => {
               <div className="grid grid-cols-3 gap-4 text-center">
                 <div>
                   <div className="text-xl font-bold text-orange-600">
-                    {userFoodListings.length || (user.userRole === 'factory' ? '156' : user.userRole === 'supermarket' ? '89' : user.userRole === 'retail' ? '34' : '23')}
+                    {userFoodListings.length || (user.user_role === 'factory' ? '156' : user.user_role === 'supermarket' ? '89' : user.user_role === 'retail' ? '34' : '23')}
                   </div>
                   <div className="text-xs text-gray-600">Items Listed</div>
                 </div>
                 <div>
                   <div className="text-xl font-bold text-green-600">
-                    {user.userRole === 'factory' ? '142' : user.userRole === 'supermarket' ? '76' : user.userRole === 'retail' ? '28' : '18'}
+                    {user.user_role === 'factory' ? '142' : user.user_role === 'supermarket' ? '76' : user.user_role === 'retail' ? '28' : '18'}
                   </div>
                   <div className="text-xs text-gray-600">Completed</div>
                 </div>
                 <div>
                   <div className="text-xl font-bold text-purple-600">
-                    {user.userRole === 'factory' ? '2,840' : user.userRole === 'supermarket' ? '1,560' : user.userRole === 'retail' ? '680' : '340'}
+                    {user.user_role === 'factory' ? '2,840' : user.user_role === 'supermarket' ? '1,560' : user.user_role === 'retail' ? '680' : '340'}
                   </div>
                   <div className="text-xs text-gray-600">KindCoins</div>
               </div>
@@ -364,10 +354,6 @@ const KindBiteAppContent = () => {
       <AIChat
         showAIChat={showAIChat}
         onClose={() => setShowAIChat(false)}
-        aiMessages={aiMessages}
-        aiInput={aiInput}
-        onAiInputChange={(e) => setAiInput(e.target.value)}
-        onSendMessage={sendAIMessage}
       />
 
       <AuthModal
@@ -392,9 +378,11 @@ const KindBiteAppContent = () => {
 
 const KindBiteApp = () => {
   return (
-    <AuthProvider>
-      <KindBiteAppContent />
-    </AuthProvider>
+    <ToastProvider>
+      <AuthProvider>
+        <KindBiteAppContent />
+      </AuthProvider>
+    </ToastProvider>
   );
 };
 
