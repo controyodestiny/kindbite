@@ -1,7 +1,7 @@
 import React from 'react';
 import { MapPin, Clock, Star, Tag, Heart } from 'lucide-react';
 
-const FoodCard = ({ food, onClick, onLikeToggle }) => {
+const FoodCard = ({ food, onClick, onLikeToggle, onReserve }) => {
   if (!food) {
     return null;
   }
@@ -46,8 +46,21 @@ const FoodCard = ({ food, onClick, onLikeToggle }) => {
       </button>
 
       {/* Food Image/Icon */}
-      <div className="w-full h-32 bg-gray-100 rounded-lg mb-3 flex items-center justify-center text-4xl">
-        {food.image || '🍽️'}
+      <div className="w-full h-32 bg-gray-100 rounded-lg mb-3 flex items-center justify-center overflow-hidden">
+        {food.image && food.image.startsWith('http') ? (
+          <img 
+            src={food.image} 
+            alt={food.name}
+            className="w-full h-full object-cover rounded-lg"
+            onError={(e) => {
+              e.target.style.display = 'none';
+              e.target.nextSibling.style.display = 'flex';
+            }}
+          />
+        ) : null}
+        <div className={`w-full h-full flex items-center justify-center text-4xl ${food.image && food.image.startsWith('http') ? 'hidden' : 'flex'}`}>
+          🍽️
+        </div>
       </div>
 
       {/* Food Info */}
@@ -132,8 +145,21 @@ const FoodCard = ({ food, onClick, onLikeToggle }) => {
             <span className="text-xs text-gray-500">
               {food.likesCount || 0} likes
             </span>
-            <button className="bg-green-500 text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-green-600 transition-colors duration-200">
-              Reserve Now
+            <button 
+              onClick={(e) => {
+                e.stopPropagation();
+                if (onReserve) {
+                  onReserve(food.id, !food.isReserved);
+                }
+              }}
+              className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors duration-200 ${
+                food.isReserved 
+                  ? 'bg-gray-500 text-white cursor-not-allowed' 
+                  : 'bg-green-500 text-white hover:bg-green-600'
+              }`}
+              disabled={food.isReserved}
+            >
+              {food.isReserved ? 'Reserved' : 'Reserve Now'}
             </button>
           </div>
         </div>

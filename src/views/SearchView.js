@@ -2,7 +2,7 @@ import React, { useState, useMemo } from 'react';
 import { Search, Filter, MapPin, Clock, Star, SortAsc, SortDesc, Heart, Zap } from 'lucide-react';
 import FoodCard from '../components/ui/FoodCard';
 
-const SearchView = ({ foodListings = [], onOpenFoodModal, onViewChange, onLikeToggle }) => {
+const SearchView = ({ foodListings = [], onOpenFoodModal, onViewChange, onLikeToggle, onReserve, title = "Search Food" }) => {
   const [searchTerm, setSearchTerm] = useState('');
   const [activeFilter, setActiveFilter] = useState('all');
   const [sortBy, setSortBy] = useState('distance');
@@ -182,7 +182,7 @@ const SearchView = ({ foodListings = [], onOpenFoodModal, onViewChange, onLikeTo
         {/* Search Header */}
         <div className="card-premium p-6">
           <h1 className="text-2xl lg:text-3xl font-bold text-gray-800 mb-6 text-center">
-            Find Your Perfect Meal
+            {title}
           </h1>
           
           {/* Advanced Search Bar */}
@@ -328,8 +328,9 @@ const SearchView = ({ foodListings = [], onOpenFoodModal, onViewChange, onLikeTo
                 <FoodCard 
                   key={food?.id || `food-${index}`} 
                   food={food} 
-                  onSelect={handleFoodSelect}
+                  onClick={handleFoodSelect}
                   onLikeToggle={onLikeToggle}
+                  onReserve={onReserve}
                 />
               ))}
             </div>

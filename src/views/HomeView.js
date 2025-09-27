@@ -2,7 +2,7 @@ import React from 'react';
 import { MapPin, Leaf, TrendingUp, Award, Users, Search, Globe } from 'lucide-react';
 import FoodCard from '../components/ui/FoodCard';
 
-const HomeView = ({ foodListings = [], onOpenFoodModal, onViewChange, onLikeToggle }) => {
+const HomeView = ({ foodListings = [], onOpenFoodModal, onViewChange, onLikeToggle, onReserve }) => {
   const handleFoodSelect = (food) => {
     if (onOpenFoodModal) {
       onOpenFoodModal(food);
@@ -132,6 +132,7 @@ const HomeView = ({ foodListings = [], onOpenFoodModal, onViewChange, onLikeTogg
                   food={food}
                   onClick={handleFoodSelect}
                   onLikeToggle={onLikeToggle}
+                  onReserve={onReserve}
                 />
               ))}
             </div>

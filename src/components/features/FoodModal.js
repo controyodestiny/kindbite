@@ -24,8 +24,8 @@ const FoodModal = ({ selectedFood, onClose, onReserve }) => {
   };
 
   return (
-    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-end justify-center z-50 lg:items-center">
-      <div className="bg-white rounded-t-lg w-full max-w-md lg:rounded-lg lg:max-w-lg lg:w-auto lg:mx-4">
+    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-end justify-center z-50 lg:items-center overflow-y-auto">
+      <div className="bg-white rounded-t-lg w-full max-w-md lg:rounded-lg lg:max-w-lg lg:w-auto lg:mx-4 my-4">
         <div className="p-4 lg:p-6">
           <div className="flex justify-between items-start mb-4">
             <h2 className="font-bold text-gray-800 text-xl lg:text-2xl">

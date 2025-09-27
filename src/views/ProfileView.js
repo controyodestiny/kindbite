@@ -2,20 +2,20 @@ import React, { useState, useEffect, useRef } from 'react';
 import { Edit3, Save, X, Camera, MapPin, Calendar, Award, Heart, Leaf, Users, TrendingUp } from 'lucide-react';
 import apiService from '../services/api';
 
-const ProfileView = ({ onViewChange }) => {
+const ProfileView = ({ onViewChange, user, onLogout, onProfileImageChange }) => {
   const [isEditing, setIsEditing] = useState(false);
   const [profileData, setProfileData] = useState({
-    name: 'Alex Johnson',
+    name: user?.username || 'Alex Johnson',
     occupation: 'Software Developer',
     location: 'Kampala, Uganda',
     bio: 'Passionate about food rescue and environmental sustainability. Love trying new cuisines and reducing food waste.',
-    email: 'alex.johnson@email.com',
+    email: user?.email || 'alex.johnson@email.com',
     phone: '+256 123 456 789',
     dietaryPreferences: ['Vegetarian', 'Halal'],
     favoriteCuisines: ['Italian', 'Indian', 'Local Ugandan'],
-    joinDate: '2024-01-15'
+    joinDate: user?.joinDate || '2024-01-15'
   });
-  const [profileImage, setProfileImage] = useState('https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=150&h=150&fit=crop&crop=face');
+  const [profileImage, setProfileImage] = useState(null);
   const [fileInputRef] = useState(useRef());
   const [isLoading, setIsLoading] = useState(false);
   const [userStats, setUserStats] = useState({
@@ -37,20 +37,25 @@ const ProfileView = ({ onViewChange }) => {
     try {
       setIsLoading(true);
       
-      // Load profile data from API
-      const apiProfile = await apiService.getDataWithFallback('/profile/', 'profile');
-      if (apiProfile) {
-        setProfileData(prev => ({ ...prev, ...apiProfile }));
-      }
+      // Simulate loading delay
+      await new Promise(resolve => setTimeout(resolve, 500));
       
-      // Load user statistics from API
-      const apiStats = await apiService.getDataWithFallback('/user-statistics/', 'user-stats');
-      if (apiStats) {
-        setUserStats(prev => ({ ...prev, ...apiStats }));
+      // Load from localStorage if available
+      const savedProfile = localStorage.getItem('userProfile');
+      if (savedProfile) {
+        const parsedProfile = JSON.parse(savedProfile);
+        setProfileData(prev => ({ ...prev, ...parsedProfile }));
+        if (parsedProfile.profileImage) {
+          setProfileImage(parsedProfile.profileImage);
+          // Also update the header profile image
+          if (onProfileImageChange) {
+            onProfileImageChange(parsedProfile.profileImage);
+          }
+        }
       }
       
     } catch (error) {
-      console.warn('Could not load user data from API, using defaults:', error);
+      console.warn('Could not load user data:', error);
       // Keep default values
     } finally {
       setIsLoading(false);
@@ -65,8 +70,17 @@ const ProfileView = ({ onViewChange }) => {
     try {
       setIsLoading(true);
       
-      // Save profile data to API
-      await apiService.updateProfile(profileData);
+      // Simulate API call delay
+      await new Promise(resolve => setTimeout(resolve, 1000));
+      
+      // Save to localStorage to persist data
+      const savedProfileData = {
+        ...profileData,
+        profileImage: profileImage
+      };
+      console.log('Saving profile data to localStorage:', savedProfileData);
+      localStorage.setItem('userProfile', JSON.stringify(savedProfileData));
+      console.log('Profile data saved successfully');
       
       // Update local state
       setIsEditing(false);
@@ -83,7 +97,7 @@ const ProfileView = ({ onViewChange }) => {
   };
 
   const handleCancelClick = () => {
-    // Reload data from API to discard changes
+    // Reload saved data to discard changes
     loadUserData();
     setIsEditing(false);
   };
@@ -106,7 +120,15 @@ const ProfileView = ({ onViewChange }) => {
     if (file) {
       const reader = new FileReader();
       reader.onload = (e) => {
+        console.log('Profile image changed:', e.target.result);
         setProfileImage(e.target.result);
+        // Pass the new profile image to the parent component
+        if (onProfileImageChange) {
+          console.log('Calling onProfileImageChange with:', e.target.result);
+          onProfileImageChange(e.target.result);
+        } else {
+          console.log('onProfileImageChange function not provided');
+        }
       };
       reader.readAsDataURL(file);
     }
@@ -166,11 +188,19 @@ const ProfileView = ({ onViewChange }) => {
               }`}
               onClick={handleImageClick}
             >
-              <img 
-                src={profileImage} 
-                alt="Profile" 
-                className="w-full h-full object-cover"
-              />
+              {profileImage ? (
+                <img 
+                  src={profileImage} 
+                  alt="Profile" 
+                  className="w-full h-full object-cover"
+                />
+              ) : (
+                <div className="w-full h-full bg-gradient-to-br from-green-400 to-blue-500 flex items-center justify-center">
+                  <span className="text-white text-4xl lg:text-5xl font-bold">
+                    {profileData.name?.charAt(0).toUpperCase() || 'U'}
+                  </span>
+                </div>
+              )}
               {isEditing && (
                 <div className="absolute inset-0 bg-black/50 flex items-center justify-center opacity-0 hover:opacity-100 transition-opacity duration-300">
                   <Camera size={32} className="text-white" />
@@ -252,13 +282,19 @@ const ProfileView = ({ onViewChange }) => {
             )}
           </div>
 
-          {/* Back to Home Button */}
-          <div className="text-center mt-6">
+          {/* Action Buttons */}
+          <div className="flex justify-center space-x-4 mt-6">
             <button
               onClick={() => onViewChange && onViewChange('home')}
               className="bg-green-500 text-white px-6 py-3 rounded-lg font-semibold hover:bg-green-600 transition-colors duration-200"
             >
               Back to Home
+            </button>
+            <button
+              onClick={onLogout}
+              className="bg-red-500 text-white px-6 py-3 rounded-lg font-semibold hover:bg-red-600 transition-colors duration-200"
+            >
+              Logout
             </button>
           </div>
 
