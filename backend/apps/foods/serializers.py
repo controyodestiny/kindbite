@@ -221,3 +221,6 @@ class FoodStatsSerializer(serializers.Serializer):
     total_kindcoins_earned = serializers.IntegerField()
     average_rating = serializers.DecimalField(max_digits=3, decimal_places=2)
 
+
+
+

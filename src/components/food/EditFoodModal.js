@@ -530,3 +530,6 @@ const EditFoodModal = ({ isOpen, onClose, onFoodUpdated, foodItem }) => {
 
 export default EditFoodModal;
 
+
+
+

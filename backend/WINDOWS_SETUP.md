@@ -176,3 +176,6 @@ If you're still having issues:
 3. Try the minimal setup above
 4. Consider using Docker for consistent environment
 
+
+
+

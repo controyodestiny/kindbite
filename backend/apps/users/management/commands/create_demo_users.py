@@ -182,3 +182,6 @@ class Command(BaseCommand):
         self.stdout.write('')
         self.stdout.write('🚀 You can now test the API with these accounts!')
 
+
+
+

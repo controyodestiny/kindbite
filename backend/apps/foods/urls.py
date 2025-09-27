@@ -23,3 +23,6 @@ urlpatterns = [
     path('stats/', views.food_stats, name='food-stats'),
 ]
 
+
+
+

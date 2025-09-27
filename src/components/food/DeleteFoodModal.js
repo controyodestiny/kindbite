@@ -163,3 +163,6 @@ const DeleteFoodModal = ({ isOpen, onClose, onFoodDeleted, foodItem }) => {
 
 export default DeleteFoodModal;
 
+
+
+

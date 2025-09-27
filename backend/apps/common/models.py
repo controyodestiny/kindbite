@@ -47,3 +47,4 @@ class BaseModel(TimeStampedModel, SoftDeleteModel):
     class Meta:
         abstract = True
 
+

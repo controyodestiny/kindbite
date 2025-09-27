@@ -99,3 +99,6 @@ class KindCoinsCalculator:
         
         return base_reward + quality_bonus
 
+
+
+

@@ -509,3 +509,6 @@ const AddFoodModal = ({ isOpen, onClose, onFoodAdded }) => {
 
 export default AddFoodModal;
 
+
+
+

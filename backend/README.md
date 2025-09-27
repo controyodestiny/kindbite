@@ -217,3 +217,6 @@ CORS_ALLOWED_ORIGINS=http://localhost:3000
 
 This project is part of the KindBite food waste reduction platform.
 
+
+
+

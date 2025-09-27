@@ -26,3 +26,6 @@ urlpatterns = [
     path('status/', auth_status, name='auth_status'),
 ]
 
+
+
+

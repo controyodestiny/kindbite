@@ -9,3 +9,4 @@ os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'kindbite.settings')
 
 application = get_asgi_application()
 
+

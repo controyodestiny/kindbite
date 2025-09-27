@@ -160,3 +160,4 @@ admin.site.site_header = "KindBite Administration"
 admin.site.site_title = "KindBite Admin"
 admin.site.index_title = "Welcome to KindBite Administration"
 
+

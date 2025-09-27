@@ -76,3 +76,6 @@ class IsVerifiedUser(permissions.BasePermission):
             request.user.is_verified
         )
 
+
+
+

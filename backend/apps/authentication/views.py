@@ -224,3 +224,6 @@ def auth_status(request):
         'user': None
     })
 
+
+
+

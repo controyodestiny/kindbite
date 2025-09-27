@@ -134,3 +134,6 @@ class UserDetailSerializer(UserSerializer):
     class Meta(UserSerializer.Meta):
         fields = UserSerializer.Meta.fields + ['profile', 'business_profile']
 
+
+
+
