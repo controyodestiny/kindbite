@@ -1,8 +1,8 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, memo } from 'react';
 import { Search, Filter, MapPin, Clock, Star, SortAsc, SortDesc, Heart, Zap } from 'lucide-react';
 import FoodCard from '../components/ui/FoodCard';
 
-const SearchView = ({ foodListings = [], onOpenFoodModal, onViewChange, onLikeToggle, onReserve, title = "Search Food" }) => {
+const SearchView = memo(({ foodListings = [], onOpenFoodModal, onViewChange, onLikeToggle, onReserve, title = "Search Food" }) => {
   const [searchTerm, setSearchTerm] = useState('');
   const [activeFilter, setActiveFilter] = useState('all');
   const [sortBy, setSortBy] = useState('distance');
@@ -401,6 +401,6 @@ const SearchView = ({ foodListings = [], onOpenFoodModal, onViewChange, onLikeTo
       </div>
     </div>
   );
-};
+});
 
 export default SearchView;

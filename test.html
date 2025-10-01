@@ -1,0 +1,17 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Button Test</title>
+</head>
+<body>
+    <h1>Button Test</h1>
+    <button onclick="alert('HTML Button Works!')">HTML Button</button>
+    <button id="jsButton">JavaScript Button</button>
+    
+    <script>
+        document.getElementById('jsButton').onclick = function() {
+            alert('JavaScript Button Works!');
+        };
+    </script>
+</body>
+</html>

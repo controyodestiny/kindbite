@@ -11,7 +11,8 @@ const Sidebar = ({
   onViewChange,
   onAdminPanelOpen,
   userRole,
-  onRoleChange
+  onRoleChange,
+  onAddFood
 }) => {
   const userPanels = {
     cafe: { icon: ChefHat, title: "Cafe", color: "bg-orange-500" },
@@ -36,7 +37,7 @@ const Sidebar = ({
         { id: 'home', label: 'Dashboard', icon: Home },
         { id: 'add-food', label: 'Add Food Items', icon: ChefHat },
         { id: 'my-food', label: 'My Food Listings', icon: Calendar },
-        { id: 'reservations', label: 'Reservations', icon: MessageCircle },
+        { id: 'messages', label: 'Messages', icon: MessageCircle },
         { id: 'analytics', label: 'Analytics', icon: Coins },
         { id: 'profile', label: 'Profile', icon: User }
       ],
@@ -44,7 +45,7 @@ const Sidebar = ({
         { id: 'home', label: 'Dashboard', icon: Home },
         { id: 'add-food', label: 'Add Food Items', icon: ChefHat },
         { id: 'my-food', label: 'My Food Listings', icon: Calendar },
-        { id: 'reservations', label: 'Reservations', icon: MessageCircle },
+        { id: 'messages', label: 'Messages', icon: MessageCircle },
         { id: 'analytics', label: 'Analytics', icon: Coins },
         { id: 'profile', label: 'Profile', icon: User }
       ],
@@ -52,7 +53,7 @@ const Sidebar = ({
         { id: 'home', label: 'Dashboard', icon: Home },
         { id: 'add-food', label: 'Add Food Items', icon: ShoppingBag },
         { id: 'my-food', label: 'My Food Listings', icon: Calendar },
-        { id: 'reservations', label: 'Reservations', icon: MessageCircle },
+        { id: 'messages', label: 'Messages', icon: MessageCircle },
         { id: 'inventory', label: 'Inventory', icon: Building },
         { id: 'profile', label: 'Profile', icon: User }
       ],
@@ -60,7 +61,7 @@ const Sidebar = ({
         { id: 'home', label: 'Dashboard', icon: Home },
         { id: 'add-food', label: 'Add Food Items', icon: ChefHat },
         { id: 'my-food', label: 'My Food Listings', icon: Calendar },
-        { id: 'reservations', label: 'Reservations', icon: MessageCircle },
+        { id: 'messages', label: 'Messages', icon: MessageCircle },
         { id: 'schedule', label: 'Baking Schedule', icon: Calendar },
         { id: 'profile', label: 'Profile', icon: User }
       ],
@@ -68,7 +69,7 @@ const Sidebar = ({
         { id: 'home', label: 'Dashboard', icon: Home },
         { id: 'add-food', label: 'Add Food Items', icon: ShoppingBag },
         { id: 'my-food', label: 'My Food Listings', icon: Calendar },
-        { id: 'reservations', label: 'Reservations', icon: MessageCircle },
+        { id: 'messages', label: 'Messages', icon: MessageCircle },
         { id: 'inventory', label: 'Inventory', icon: Building },
         { id: 'profile', label: 'Profile', icon: User }
       ],
@@ -76,33 +77,53 @@ const Sidebar = ({
         { id: 'home', label: 'Dashboard', icon: Home },
         { id: 'add-food', label: 'Add Food Items', icon: ChefHat },
         { id: 'my-food', label: 'My Food Listings', icon: Calendar },
-        { id: 'reservations', label: 'Reservations', icon: MessageCircle },
+        { id: 'messages', label: 'Messages', icon: MessageCircle },
         { id: 'events', label: 'Events', icon: Calendar },
         { id: 'profile', label: 'Profile', icon: User }
+      ],
+      // Default/Generic user roles
+      donor: [
+        { id: 'home', label: 'Dashboard', icon: Home },
+        { id: 'search', label: 'Search Food', icon: ShoppingBag },
+        { id: 'community', label: 'Community', icon: Users },
+        { id: 'points', label: 'My Points', icon: Coins },
+        { id: 'profile', label: 'My Profile', icon: User },
+        { id: 'messages', label: 'Messages', icon: MessageCircle },
+        { id: 'about', label: 'About KindBite', icon: Gift },
+        { id: 'partners', label: 'Our Partners', icon: Building },
+        { id: 'environment', label: 'Environmental Impact', icon: Stethoscope },
+      ],
+      "end-user": [
+        { id: 'home', label: 'Dashboard', icon: Home },
+        { id: 'search', label: 'Search Food', icon: ShoppingBag },
+        { id: 'community', label: 'Community', icon: Users },
+        { id: 'points', label: 'My Points', icon: Coins },
+        { id: 'profile', label: 'My Profile', icon: User },
+        { id: 'messages', label: 'Messages', icon: MessageCircle },
+        { id: 'about', label: 'About KindBite', icon: Gift },
+        { id: 'partners', label: 'Our Partners', icon: Building },
+        { id: 'environment', label: 'Environmental Impact', icon: Stethoscope },
       ]
     };
-    return menus[role] || menus.cafe;
+    
+    return menus[role] || menus["end-user"];
   };
 
-  const currentRole = userPanels[userRole] || userPanels.cafe;
+  const currentRole = userPanels[userRole] || userPanels["end-user"];
   const menuItems = getRoleSpecificMenu(userRole);
 
   const sidebarContent = (
-    <div className="bg-white shadow-lg overflow-y-auto h-full">
-      <div className={`${currentRole.color} text-white p-4`}>
-        <div className="flex justify-between items-center">
-          <div className="flex items-center space-x-3">
-            <div className="w-8 h-8 bg-white/20 rounded-full flex items-center justify-center">
-              <currentRole.icon size={20} />
-            </div>
-            <div>
-              <h2 className="text-lg font-bold">{currentRole.title}</h2>
-              <p className="text-xs opacity-90">Dashboard</p>
-            </div>
+    <div className="h-full flex flex-col">
+      {/* Header */}
+      <div className="p-4 border-b border-gray-200">
+        <div className="flex items-center space-x-3">
+          <div className={`w-10 h-10 ${currentRole.color} rounded-full flex items-center justify-center`}>
+            <currentRole.icon size={20} className="text-white" />
           </div>
-          <button onClick={onClose} className="p-1 hover:bg-white/20 rounded">
-            <X size={20} />
-          </button>
+          <div>
+            <h2 className="text-lg font-semibold text-gray-800">{currentRole.title}</h2>
+            <p className="text-sm text-gray-500">Navigation</p>
+          </div>
         </div>
       </div>
       
@@ -113,7 +134,14 @@ const Sidebar = ({
             <button
               key={item.id}
               onClick={() => {
-                onViewChange(item.id);
+                if (item.id === 'add-food') {
+                  onViewChange('home');
+                  if (onAddFood) {
+                    onAddFood();
+                  }
+                } else {
+                  onViewChange(item.id);
+                }
                 onClose();
               }}
               className={`w-full flex items-center space-x-3 p-3 rounded-lg hover:bg-gray-100 transition-colors ${

@@ -1,0 +1,106 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Button Test</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 600px;
+            margin: 50px auto;
+            padding: 20px;
+            background-color: #f5f5f5;
+        }
+        .container {
+            background: white;
+            padding: 30px;
+            border-radius: 10px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            text-align: center;
+        }
+        button {
+            background-color: #10b981;
+            color: white;
+            border: none;
+            padding: 15px 30px;
+            font-size: 16px;
+            border-radius: 5px;
+            cursor: pointer;
+            margin: 10px;
+            transition: background-color 0.3s;
+        }
+        button:hover {
+            background-color: #059669;
+        }
+        .test-section {
+            margin: 20px 0;
+            padding: 20px;
+            border: 1px solid #e5e7eb;
+            border-radius: 5px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>KindBite Button Test</h1>
+        <p>This page tests if JavaScript is working in your browser.</p>
+        
+        <div class="test-section">
+            <h3>Test 1: Basic HTML Button</h3>
+            <button onclick="alert('HTML onclick works!')">HTML onclick Button</button>
+        </div>
+        
+        <div class="test-section">
+            <h3>Test 2: JavaScript Button</h3>
+            <button id="jsButton">JavaScript Button</button>
+        </div>
+        
+        <div class="test-section">
+            <h3>Test 3: Event Listener Button</h3>
+            <button id="eventButton">Event Listener Button</button>
+        </div>
+        
+        <div class="test-section">
+            <h3>Test 4: Multiple Buttons</h3>
+            <button onclick="testFunction('Button 1')">Button 1</button>
+            <button onclick="testFunction('Button 2')">Button 2</button>
+            <button onclick="testFunction('Button 3')">Button 3</button>
+        </div>
+        
+        <div id="result" style="margin-top: 20px; padding: 10px; background-color: #f0f9ff; border-radius: 5px; display: none;">
+            <p id="resultText"></p>
+        </div>
+    </div>
+
+    <script>
+        // Test 2: JavaScript button
+        document.getElementById('jsButton').onclick = function() {
+            alert('JavaScript onclick works!');
+        };
+        
+        // Test 3: Event listener button
+        document.getElementById('eventButton').addEventListener('click', function() {
+            alert('Event listener works!');
+            showResult('Event listener button clicked successfully!');
+        });
+        
+        // Test 4: Function for multiple buttons
+        function testFunction(buttonName) {
+            alert(buttonName + ' clicked!');
+            showResult(buttonName + ' clicked successfully!');
+        }
+        
+        function showResult(message) {
+            document.getElementById('resultText').textContent = message;
+            document.getElementById('result').style.display = 'block';
+        }
+        
+        // Test if page loaded
+        window.onload = function() {
+            console.log('Page loaded successfully!');
+            showResult('Page loaded! All JavaScript is working.');
+        };
+    </script>
+</body>
+</html>

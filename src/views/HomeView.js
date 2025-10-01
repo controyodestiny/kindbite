@@ -1,8 +1,8 @@
-import React from 'react';
+import React, { memo } from 'react';
 import { MapPin, Leaf, TrendingUp, Award, Users, Search, Globe } from 'lucide-react';
 import FoodCard from '../components/ui/FoodCard';
 
-const HomeView = ({ foodListings = [], onOpenFoodModal, onViewChange, onLikeToggle, onReserve }) => {
+const HomeView = memo(({ foodListings = [], onOpenFoodModal, onViewChange, onLikeToggle, onReserve }) => {
   const handleFoodSelect = (food) => {
     if (onOpenFoodModal) {
       onOpenFoodModal(food);
@@ -181,6 +181,6 @@ const HomeView = ({ foodListings = [], onOpenFoodModal, onViewChange, onLikeTogg
       </div>
     </div>
   );
-};
+});
 
 export default HomeView;

@@ -78,9 +78,7 @@ const ProfileView = ({ onViewChange, user, onLogout, onProfileImageChange }) => 
         ...profileData,
         profileImage: profileImage
       };
-      console.log('Saving profile data to localStorage:', savedProfileData);
       localStorage.setItem('userProfile', JSON.stringify(savedProfileData));
-      console.log('Profile data saved successfully');
       
       // Update local state
       setIsEditing(false);
@@ -120,14 +118,10 @@ const ProfileView = ({ onViewChange, user, onLogout, onProfileImageChange }) => 
     if (file) {
       const reader = new FileReader();
       reader.onload = (e) => {
-        console.log('Profile image changed:', e.target.result);
         setProfileImage(e.target.result);
         // Pass the new profile image to the parent component
         if (onProfileImageChange) {
-          console.log('Calling onProfileImageChange with:', e.target.result);
           onProfileImageChange(e.target.result);
-        } else {
-          console.log('onProfileImageChange function not provided');
         }
       };
       reader.readAsDataURL(file);

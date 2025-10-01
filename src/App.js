@@ -22,9 +22,7 @@ function App() {
   const [showAIChat, setShowAIChat] = useState(false);
   const [showFoodModal, setShowFoodModal] = useState(false);
   const [showNotifications, setShowNotifications] = useState(false);
-  const [showEditModal, setShowEditModal] = useState(false);
   const [showAddFoodModal, setShowAddFoodModal] = useState(false);
-  const [editingFood, setEditingFood] = useState(null);
   const [selectedFood, setSelectedFood] = useState(null);
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [user, setUser] = useState(null);
@@ -32,7 +30,6 @@ function App() {
   const [authMode, setAuthMode] = useState('login');
   const [profileImage, setProfileImage] = useState(null);
 
-  // Mock data
   const [foodListings, setFoodListings] = useState([
     {
       id: 1,
@@ -42,9 +39,12 @@ function App() {
       originalPrice: 0,
       discountedPrice: 0,
       rating: 4.5,
-      image: "https://images.unsplash.com/photo-1565299624946-b28f40a0ca4b?w=400&h=300&fit=crop",
+      image: "🥗",
       description: "Fresh mixed vegetables stir-fried with aromatic spices",
-      isReserved: false
+      isReserved: false,
+      isLiked: false,
+      quantity: 5,
+      co2Saved: 2.3
     },
     {
       id: 2,
@@ -54,9 +54,12 @@ function App() {
       originalPrice: 0,
       discountedPrice: 0,
       rating: 4.8,
-      image: "https://images.unsplash.com/photo-1596040033229-a9821ebd058d?w=400&h=300&fit=crop",
+      image: "🍗",
       description: "Fragrant basmati rice with tender chicken and aromatic spices",
-      isReserved: false
+      isReserved: false,
+      isLiked: false,
+      quantity: 3,
+      co2Saved: 3.1
     }
   ]);
 
@@ -67,17 +70,9 @@ function App() {
       message: "Mixed Vegetable Stir Fry is now available at Green Garden Cafe",
       timestamp: "2 minutes ago",
       isRead: false
-    },
-    {
-      id: 2,
-      title: "Reservation Confirmed",
-      message: "Your reservation for Chicken Biryani has been confirmed",
-      timestamp: "1 hour ago",
-      isRead: true
     }
   ]);
 
-  // Load user data from localStorage on mount
   useEffect(() => {
     const savedUser = localStorage.getItem('kindbite_user');
     const savedAuth = localStorage.getItem('kindbite_authenticated');
@@ -89,10 +84,8 @@ function App() {
         setIsAuthenticated(true);
         setUser(userData);
         setUserRole(userData.role || 'cafe');
-      } catch (error) {
+    } catch (error) {
         console.error('Error loading user data:', error);
-        localStorage.removeItem('kindbite_user');
-        localStorage.removeItem('kindbite_authenticated');
       }
     }
     
@@ -101,98 +94,11 @@ function App() {
     }
   }, []);
 
-  // Handle add-food case
-  useEffect(() => {
-    if (currentView === 'add-food') {
-      setShowAddFoodModal(true);
-      setCurrentView('home'); // Reset to home after opening modal
-    }
-  }, [currentView]);
-
-  const handleProfileImageChange = (newImage) => {
-    setProfileImage(newImage);
-    localStorage.setItem('kindbite_profile_image', newImage);
-  };
-
-  const handleFoodLikeToggle = (foodId) => {
-    setFoodListings(prevListings =>
-      prevListings.map(food =>
-        food.id === foodId ? { ...food, isLiked: !food.isLiked } : food
-      )
-    );
-  };
-
-  const handleFoodReserve = (foodId) => {
-    setFoodListings(prevListings =>
-      prevListings.map(food =>
-        food.id === foodId ? { ...food, isReserved: !food.isReserved } : food
-      )
-    );
-  };
-
-  const handleOpenFoodModal = (food) => {
-    setSelectedFood(food);
-    setShowFoodModal(true);
-  };
-
-  const handleOpenEditModal = (food) => {
-    setEditingFood(food);
-    setShowEditModal(true);
-  };
-
-  const handleOpenAddFoodModal = () => {
-    setShowAddFoodModal(true);
-  };
-
-  const handleAddFood = (e) => {
-    e.preventDefault();
-    const formData = new FormData(e.target);
-    const newFood = {
-      id: Date.now(),
-      name: formData.get('name'),
-      restaurant: formData.get('restaurant'),
-      category: formData.get('category'),
-      originalPrice: 0,
-      discountedPrice: 0,
-      rating: 4.0,
-      image: "https://images.unsplash.com/photo-1565299624946-b28f40a0ca4b?w=400",
-      description: formData.get('description'),
-      isReserved: false
-    };
-    setFoodListings(prevListings => [newFood, ...prevListings]);
-    setShowAddFoodModal(false);
-    e.target.reset();
-  };
-
-  const handleCloseFoodModal = () => {
-    setShowFoodModal(false);
-    setSelectedFood(null);
-  };
-
-  const handleNotificationToggle = () => {
-    setShowNotifications(!showNotifications);
-  };
-
-  const handleMarkAllNotificationsRead = () => {
-    setNotifications(prev => prev.map(notif => ({ ...notif, isRead: true })));
-  };
-
-  const handleNotificationClick = (notificationId) => {
-    setNotifications(prev => 
-      prev.map(notif => 
-        notif.id === notificationId ? { ...notif, isRead: true } : notif
-      )
-    );
-  };
-
-  // Authentication functions
   const handleLogin = (userData) => {
     setIsAuthenticated(true);
     setUser(userData);
     setUserRole(userData.role || 'cafe');
     setShowAuthModal(false);
-    
-    // Save to localStorage so user stays logged in
     localStorage.setItem('kindbite_user', JSON.stringify(userData));
     localStorage.setItem('kindbite_authenticated', 'true');
   };
@@ -201,160 +107,424 @@ function App() {
     setIsAuthenticated(false);
     setUser(null);
     setCurrentView('home');
-    setShowSidebar(false);
-    
-    // Clear localStorage
     localStorage.removeItem('kindbite_user');
     localStorage.removeItem('kindbite_authenticated');
     localStorage.removeItem('kindbite_profile_image');
   };
 
-  const handleAuthModeChange = (mode) => {
-    setAuthMode(mode);
+  const handleFoodLikeToggle = (foodId) => {
+    setFoodListings(prev => prev.map(food =>
+      food.id === foodId ? { ...food, isLiked: !food.isLiked } : food
+    ));
+  };
+
+  const handleFoodReserve = (foodId) => {
+    setFoodListings(prev => prev.map(food =>
+      food.id === foodId ? { ...food, isReserved: !food.isReserved } : food
+    ));
   };
 
   const renderCurrentView = () => {
     switch (currentView) {
       case 'home':
-        return <HomeView 
-          foodListings={foodListings} 
-          onFoodLike={handleFoodLikeToggle}
-          onFoodReserve={handleFoodReserve}
-          onOpenFoodModal={handleOpenFoodModal}
-        />;
+        return <HomeView foodListings={foodListings} onLikeToggle={handleFoodLikeToggle} onReserve={handleFoodReserve} onOpenFoodModal={(food) => { setSelectedFood(food); setShowFoodModal(true); }} onViewChange={setCurrentView} />;
       case 'search':
-        return <SearchView 
-          foodListings={foodListings} 
-          onFoodLike={handleFoodLikeToggle}
-          onFoodReserve={handleFoodReserve}
-          onOpenFoodModal={handleOpenFoodModal}
-        />;
-      case 'add-food':
-        // Show add food modal
-        return <HomeView 
-          foodListings={foodListings} 
-          onFoodLike={handleFoodLikeToggle}
-          onFoodReserve={handleFoodReserve}
-          onOpenFoodModal={handleOpenFoodModal}
-        />;
+        return <SearchView foodListings={foodListings} onLikeToggle={handleFoodLikeToggle} onReserve={handleFoodReserve} onOpenFoodModal={(food) => { setSelectedFood(food); setShowFoodModal(true); }} onViewChange={setCurrentView} />;
       case 'my-food':
-        // Show user's food listings
-        return <SearchView 
-          foodListings={foodListings.filter(food => food.restaurant === (user?.username || 'Your Restaurant'))} 
-          onFoodLike={handleFoodLikeToggle}
-          onFoodReserve={handleFoodReserve}
-          onOpenFoodModal={handleOpenFoodModal}
-          title="My Food Listings"
-        />;
+        return <SearchView foodListings={foodListings.filter(f => f.restaurant === (user?.username || 'Your Restaurant'))} onLikeToggle={handleFoodLikeToggle} onReserve={handleFoodReserve} onOpenFoodModal={(food) => { setSelectedFood(food); setShowFoodModal(true); }} onViewChange={setCurrentView} title="My Food Listings" />;
       case 'reservations':
-        // Show reservations view
         return <MessagesView />;
       case 'analytics':
-        // Show analytics/points view
-        return <PointsView />;
+        return <PointsView onViewChange={setCurrentView} />;
       case 'inventory':
-        // Show inventory view (for retail/grocery)
-        return <SearchView 
-          foodListings={foodListings.filter(food => food.restaurant === (user?.username || 'Your Store'))} 
-          onFoodLike={handleFoodLikeToggle}
-          onFoodReserve={handleFoodReserve}
-          onOpenFoodModal={handleOpenFoodModal}
-          title="Inventory"
-        />;
+        return <SearchView foodListings={foodListings.filter(f => f.restaurant === (user?.username || 'Your Store'))} onLikeToggle={handleFoodLikeToggle} onReserve={handleFoodReserve} onOpenFoodModal={(food) => { setSelectedFood(food); setShowFoodModal(true); }} onViewChange={setCurrentView} title="Inventory" />;
       case 'schedule':
-        // Show baking schedule (for bakery)
-        return <SearchView 
-          foodListings={foodListings.filter(food => food.restaurant === (user?.username || 'Your Bakery'))} 
-          onFoodLike={handleFoodLikeToggle}
-          onFoodReserve={handleFoodReserve}
-          onOpenFoodModal={handleOpenFoodModal}
-          title="Baking Schedule"
-        />;
+        return <SearchView foodListings={foodListings.filter(f => f.restaurant === (user?.username || 'Your Bakery'))} onLikeToggle={handleFoodLikeToggle} onReserve={handleFoodReserve} onOpenFoodModal={(food) => { setSelectedFood(food); setShowFoodModal(true); }} onViewChange={setCurrentView} title="Baking Schedule" />;
       case 'events':
-        // Show events (for hotel)
-        return <SearchView 
-          foodListings={foodListings.filter(food => food.restaurant === (user?.username || 'Your Hotel'))} 
-          onFoodLike={handleFoodLikeToggle}
-          onFoodReserve={handleFoodReserve}
-          onOpenFoodModal={handleOpenFoodModal}
-          title="Events"
-        />;
+        return <SearchView foodListings={foodListings.filter(f => f.restaurant === (user?.username || 'Your Hotel'))} onLikeToggle={handleFoodLikeToggle} onReserve={handleFoodReserve} onOpenFoodModal={(food) => { setSelectedFood(food); setShowFoodModal(true); }} onViewChange={setCurrentView} title="Events" />;
       case 'community':
-        return <CommunityView />;
+        return <CommunityView onViewChange={setCurrentView} />;
       case 'points':
-        return <PointsView />;
+        return <PointsView onViewChange={setCurrentView} />;
       case 'profile':
-        return <ProfileView 
-          user={user} 
-          onLogout={handleLogout}
-          onProfileImageChange={handleProfileImageChange}
-        />;
+        return <ProfileView user={user} onLogout={handleLogout} onProfileImageChange={(img) => { setProfileImage(img); localStorage.setItem('kindbite_profile_image', img); }} onViewChange={setCurrentView} />;
       case 'about':
         return <AboutView />;
       case 'messages':
-        return <MessagesView />;
+        return (
+          <div style={{ position: 'relative' }}>
+            <button
+              onClick={() => setCurrentView('community')}
+              style={{
+                position: 'fixed',
+                top: '88px',
+                left: '24px',
+                width: '44px',
+                height: '44px',
+                borderRadius: '50%',
+                background: 'rgba(0, 0, 0, 0.05)',
+                border: 'none',
+                cursor: 'pointer',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                zIndex: 1000,
+                transition: 'all 0.2s'
+              }}
+              onMouseEnter={(e) => {
+                e.target.style.background = 'rgba(0, 0, 0, 0.1)';
+                e.target.style.transform = 'scale(1.05)';
+              }}
+              onMouseLeave={(e) => {
+                e.target.style.background = 'rgba(0, 0, 0, 0.05)';
+                e.target.style.transform = 'scale(1)';
+              }}
+            >
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M19 12H5M12 19l-7-7 7-7"/>
+              </svg>
+            </button>
+            <MessagesView />
+          </div>
+        );
       case 'environment':
-        return <EnvironmentView />;
+        return (
+          <div style={{ position: 'relative' }}>
+            <button
+              onClick={() => setCurrentView('community')}
+              style={{
+                position: 'fixed',
+                top: '88px',
+                left: '24px',
+                width: '44px',
+                height: '44px',
+                borderRadius: '50%',
+                background: 'rgba(0, 0, 0, 0.05)',
+                border: 'none',
+                cursor: 'pointer',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                zIndex: 1000,
+                transition: 'all 0.2s'
+              }}
+              onMouseEnter={(e) => {
+                e.target.style.background = 'rgba(0, 0, 0, 0.1)';
+                e.target.style.transform = 'scale(1.05)';
+              }}
+              onMouseLeave={(e) => {
+                e.target.style.background = 'rgba(0, 0, 0, 0.05)';
+                e.target.style.transform = 'scale(1)';
+              }}
+            >
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M19 12H5M12 19l-7-7 7-7"/>
+              </svg>
+            </button>
+            <div style={{ minHeight: '100vh', background: 'white', paddingTop: '32px' }}>
+              <div style={{ maxWidth: '1016px', margin: '0 auto', padding: '32px 24px' }}>
+                <h1 style={{ fontSize: '36px', fontWeight: '600', color: '#111', marginBottom: '12px' }}>
+                  🌱 Eco Impact
+                </h1>
+                <p style={{ fontSize: '16px', color: '#767676', marginBottom: '32px' }}>
+                  How KindBite is helping save the planet
+                </p>
+                
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))', gap: '16px', marginBottom: '32px' }}>
+                  <div style={{ background: 'white', border: '1px solid #efefef', borderRadius: '16px', padding: '24px', textAlign: 'center' }}>
+                    <div style={{ fontSize: '40px', marginBottom: '12px' }}>🌍</div>
+                    <div style={{ fontSize: '32px', fontWeight: '700', color: '#111', marginBottom: '4px' }}>38 tons</div>
+                    <div style={{ fontSize: '14px', color: '#767676' }}>CO₂ Emissions Saved</div>
+                  </div>
+
+                  <div style={{ background: 'white', border: '1px solid #efefef', borderRadius: '16px', padding: '24px', textAlign: 'center' }}>
+                    <div style={{ fontSize: '40px', marginBottom: '12px' }}>💧</div>
+                    <div style={{ fontSize: '32px', fontWeight: '700', color: '#111', marginBottom: '4px' }}>245K L</div>
+                    <div style={{ fontSize: '14px', color: '#767676' }}>Water Conserved</div>
+                  </div>
+
+                  <div style={{ background: 'white', border: '1px solid #efefef', borderRadius: '16px', padding: '24px', textAlign: 'center' }}>
+                    <div style={{ fontSize: '40px', marginBottom: '12px' }}>🌾</div>
+                    <div style={{ fontSize: '32px', fontWeight: '700', color: '#111', marginBottom: '4px' }}>18K kg</div>
+                    <div style={{ fontSize: '14px', color: '#767676' }}>Food Waste Prevented</div>
+                  </div>
+
+                  <div style={{ background: 'white', border: '1px solid #efefef', borderRadius: '16px', padding: '24px', textAlign: 'center' }}>
+                    <div style={{ fontSize: '40px', marginBottom: '12px' }}>⚡</div>
+                    <div style={{ fontSize: '32px', fontWeight: '700', color: '#111', marginBottom: '4px' }}>42K kWh</div>
+                    <div style={{ fontSize: '14px', color: '#767676' }}>Energy Saved</div>
+                  </div>
+                </div>
+
+                <div style={{ background: 'white', border: '1px solid #efefef', borderRadius: '16px', padding: '32px', marginBottom: '32px' }}>
+                  <h2 style={{ fontSize: '24px', fontWeight: '600', color: '#111', marginBottom: '20px' }}>
+                    Why Food Rescue Matters
+                  </h2>
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
+                    <div style={{ display: 'flex', gap: '16px', alignItems: 'start' }}>
+                      <div style={{ fontSize: '32px', flexShrink: 0 }}>🌡️</div>
+                      <div>
+                        <div style={{ fontSize: '16px', fontWeight: '600', color: '#111', marginBottom: '4px' }}>Reduces Global Warming</div>
+                        <div style={{ fontSize: '15px', color: '#767676' }}>Food waste produces methane, a greenhouse gas 25x more potent than CO₂</div>
+                      </div>
+                    </div>
+
+                    <div style={{ display: 'flex', gap: '16px', alignItems: 'start' }}>
+                      <div style={{ fontSize: '32px', flexShrink: 0 }}>💰</div>
+                      <div>
+                        <div style={{ fontSize: '16px', fontWeight: '600', color: '#111', marginBottom: '4px' }}>Saves Resources</div>
+                        <div style={{ fontSize: '15px', color: '#767676' }}>Every meal saved conserves the water, energy, and land used to produce it</div>
+                      </div>
+                    </div>
+
+                    <div style={{ display: 'flex', gap: '16px', alignItems: 'start' }}>
+                      <div style={{ fontSize: '32px', flexShrink: 0 }}>🤝</div>
+                      <div>
+                        <div style={{ fontSize: '16px', fontWeight: '600', color: '#111', marginBottom: '4px' }}>Helps Communities</div>
+                        <div style={{ fontSize: '15px', color: '#767676' }}>Connecting surplus food with those who need it strengthens our community</div>
+                      </div>
+                    </div>
+
+                    <div style={{ display: 'flex', gap: '16px', alignItems: 'start' }}>
+                      <div style={{ fontSize: '32px', flexShrink: 0 }}>🌱</div>
+                      <div>
+                        <div style={{ fontSize: '16px', fontWeight: '600', color: '#111', marginBottom: '4px' }}>Protects Biodiversity</div>
+                        <div style={{ fontSize: '15px', color: '#767676' }}>Less food waste means less pressure on natural ecosystems and wildlife</div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                <div style={{ background: '#111', borderRadius: '16px', padding: '32px', textAlign: 'center', color: 'white' }}>
+                  <div style={{ fontSize: '32px', marginBottom: '16px' }}>🎯</div>
+                  <h3 style={{ fontSize: '24px', fontWeight: '600', marginBottom: '12px' }}>Our Goal</h3>
+                  <p style={{ fontSize: '16px', opacity: 0.9 }}>
+                    Together, we're working to reduce food waste by 50% in our community by 2025
+                  </p>
+                </div>
+              </div>
+            </div>
+          </div>
+        );
       case 'partners':
-        return <PartnersView />;
+        return <PartnersView onViewChange={setCurrentView} />;
+      case 'news':
+        return (
+          <div style={{ position: 'relative' }}>
+            <button
+              onClick={() => setCurrentView('community')}
+              style={{
+                position: 'fixed',
+                top: '88px',
+                left: '24px',
+                width: '44px',
+                height: '44px',
+                borderRadius: '50%',
+                background: 'rgba(0, 0, 0, 0.05)',
+                border: 'none',
+                cursor: 'pointer',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                zIndex: 1000,
+                transition: 'all 0.2s'
+              }}
+              onMouseEnter={(e) => {
+                e.target.style.background = 'rgba(0, 0, 0, 0.1)';
+                e.target.style.transform = 'scale(1.05)';
+              }}
+              onMouseLeave={(e) => {
+                e.target.style.background = 'rgba(0, 0, 0, 0.05)';
+                e.target.style.transform = 'scale(1)';
+              }}
+            >
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M19 12H5M12 19l-7-7 7-7"/>
+              </svg>
+            </button>
+            <div style={{ minHeight: '100vh', background: 'white', paddingTop: '32px' }}>
+              <div style={{ maxWidth: '1016px', margin: '0 auto', padding: '32px 24px' }}>
+                <h1 style={{ fontSize: '36px', fontWeight: '600', color: '#111', marginBottom: '32px' }}>
+                  News & Events
+                </h1>
+                
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+                  <div style={{ background: 'white', border: '1px solid #efefef', borderRadius: '16px', padding: '24px', cursor: 'pointer', transition: 'all 0.2s' }}
+                    onMouseEnter={(e) => e.currentTarget.style.background = '#fafafa'}
+                    onMouseLeave={(e) => e.currentTarget.style.background = 'white'}>
+                    <div style={{ fontSize: '20px', fontWeight: '600', color: '#111', marginBottom: '12px' }}>🎉 New Feature: Messages</div>
+                    <div style={{ fontSize: '15px', color: '#767676', marginBottom: '12px' }}>WhatsApp-like messaging is now available! Connect with food providers and community members.</div>
+                    <div style={{ fontSize: '14px', color: '#999' }}>2 hours ago</div>
+                  </div>
+
+                  <div style={{ background: 'white', border: '1px solid #efefef', borderRadius: '16px', padding: '24px', cursor: 'pointer', transition: 'all 0.2s' }}
+                    onMouseEnter={(e) => e.currentTarget.style.background = '#fafafa'}
+                    onMouseLeave={(e) => e.currentTarget.style.background = 'white'}>
+                    <div style={{ fontSize: '20px', fontWeight: '600', color: '#111', marginBottom: '12px' }}>🌱 Earth Day Event</div>
+                    <div style={{ fontSize: '15px', color: '#767676', marginBottom: '12px' }}>Join us for a special food rescue event on April 22nd!</div>
+                    <div style={{ display: 'flex', gap: '12px', alignItems: 'center' }}>
+                      <span style={{ fontSize: '14px', color: '#999' }}>1 day ago</span>
+                      <span style={{ background: '#efefef', color: '#111', padding: '4px 12px', borderRadius: '12px', fontSize: '13px', fontWeight: '600' }}>Upcoming</span>
+                    </div>
+                  </div>
+
+                  <div style={{ background: 'white', border: '1px solid #efefef', borderRadius: '16px', padding: '24px', cursor: 'pointer', transition: 'all 0.2s' }}
+                    onMouseEnter={(e) => e.currentTarget.style.background = '#fafafa'}
+                    onMouseLeave={(e) => e.currentTarget.style.background = 'white'}>
+                    <div style={{ fontSize: '20px', fontWeight: '600', color: '#111', marginBottom: '12px' }}>🏆 Top Contributors</div>
+                    <div style={{ fontSize: '15px', color: '#767676', marginBottom: '12px' }}>Congratulations to our amazing community members who saved over 500kg of food this month!</div>
+                    <div style={{ display: 'flex', gap: '12px', alignItems: 'center' }}>
+                      <span style={{ fontSize: '14px', color: '#999' }}>3 days ago</span>
+                      <span style={{ background: '#efefef', color: '#111', padding: '4px 12px', borderRadius: '12px', fontSize: '13px', fontWeight: '600' }}>Achievement</span>
+                    </div>
+                  </div>
+
+                  <div style={{ background: 'white', border: '1px solid #efefef', borderRadius: '16px', padding: '24px', cursor: 'pointer', transition: 'all 0.2s' }}
+                    onMouseEnter={(e) => e.currentTarget.style.background = '#fafafa'}
+                    onMouseLeave={(e) => e.currentTarget.style.background = 'white'}>
+                    <div style={{ fontSize: '20px', fontWeight: '600', color: '#111', marginBottom: '12px' }}>🍲 Cooking Workshop</div>
+                    <div style={{ fontSize: '15px', color: '#767676', marginBottom: '12px' }}>Learn how to cook with surplus ingredients! Free workshop this Saturday at 2 PM.</div>
+                    <div style={{ display: 'flex', gap: '12px', alignItems: 'center' }}>
+                      <span style={{ fontSize: '14px', color: '#999' }}>5 days ago</span>
+                      <span style={{ background: '#efefef', color: '#111', padding: '4px 12px', borderRadius: '12px', fontSize: '13px', fontWeight: '600' }}>Event</span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        );
+      case 'panels':
+        return (
+          <div style={{ position: 'relative' }}>
+            <button
+              onClick={() => setCurrentView('community')}
+              style={{
+                position: 'fixed',
+                top: '88px',
+                left: '24px',
+                width: '44px',
+                height: '44px',
+                borderRadius: '50%',
+                background: 'rgba(0, 0, 0, 0.05)',
+                border: 'none',
+                cursor: 'pointer',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                zIndex: 1000,
+                transition: 'all 0.2s'
+              }}
+              onMouseEnter={(e) => {
+                e.target.style.background = 'rgba(0, 0, 0, 0.1)';
+                e.target.style.transform = 'scale(1.05)';
+              }}
+              onMouseLeave={(e) => {
+                e.target.style.background = 'rgba(0, 0, 0, 0.05)';
+                e.target.style.transform = 'scale(1)';
+              }}
+            >
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M19 12H5M12 19l-7-7 7-7"/>
+              </svg>
+            </button>
+            <div style={{ minHeight: '100vh', background: 'white', paddingTop: '32px' }}>
+              <div style={{ maxWidth: '1016px', margin: '0 auto', padding: '32px 24px' }}>
+                <h1 style={{ fontSize: '36px', fontWeight: '600', color: '#111', marginBottom: '12px' }}>
+                  User Panels
+                </h1>
+                <p style={{ fontSize: '16px', color: '#767676', marginBottom: '32px' }}>
+                  Active community members making a difference
+                </p>
+                
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: '16px', marginBottom: '32px' }}>
+                  <div style={{ background: 'white', border: '1px solid #efefef', borderRadius: '16px', padding: '32px', textAlign: 'center', cursor: 'pointer', transition: 'all 0.2s' }}
+                    onMouseEnter={(e) => e.currentTarget.style.background = '#fafafa'}
+                    onMouseLeave={(e) => e.currentTarget.style.background = 'white'}>
+                    <div style={{ fontSize: '48px', marginBottom: '12px' }}>👨‍🍳</div>
+                    <div style={{ fontSize: '18px', fontWeight: '600', color: '#111', marginBottom: '8px' }}>Restaurants</div>
+                    <div style={{ fontSize: '40px', fontWeight: '700', color: '#111', marginBottom: '4px' }}>156</div>
+                    <div style={{ fontSize: '14px', color: '#767676' }}>Active providers</div>
+                  </div>
+
+                  <div style={{ background: 'white', border: '1px solid #efefef', borderRadius: '16px', padding: '32px', textAlign: 'center', cursor: 'pointer', transition: 'all 0.2s' }}
+                    onMouseEnter={(e) => e.currentTarget.style.background = '#fafafa'}
+                    onMouseLeave={(e) => e.currentTarget.style.background = 'white'}>
+                    <div style={{ fontSize: '48px', marginBottom: '12px' }}>🛒</div>
+                    <div style={{ fontSize: '18px', fontWeight: '600', color: '#111', marginBottom: '8px' }}>Retailers</div>
+                    <div style={{ fontSize: '40px', fontWeight: '700', color: '#111', marginBottom: '4px' }}>89</div>
+                    <div style={{ fontSize: '14px', color: '#767676' }}>Stores & Markets</div>
+                  </div>
+
+                  <div style={{ background: 'white', border: '1px solid #efefef', borderRadius: '16px', padding: '32px', textAlign: 'center', cursor: 'pointer', transition: 'all 0.2s' }}
+                    onMouseEnter={(e) => e.currentTarget.style.background = '#fafafa'}
+                    onMouseLeave={(e) => e.currentTarget.style.background = 'white'}>
+                    <div style={{ fontSize: '48px', marginBottom: '12px' }}>🏠</div>
+                    <div style={{ fontSize: '18px', fontWeight: '600', color: '#111', marginBottom: '8px' }}>Home Cooks</div>
+                    <div style={{ fontSize: '40px', fontWeight: '700', color: '#111', marginBottom: '4px' }}>234</div>
+                    <div style={{ fontSize: '14px', color: '#767676' }}>Home kitchens</div>
+                  </div>
+
+                  <div style={{ background: 'white', border: '1px solid #efefef', borderRadius: '16px', padding: '32px', textAlign: 'center', cursor: 'pointer', transition: 'all 0.2s' }}
+                    onMouseEnter={(e) => e.currentTarget.style.background = '#fafafa'}
+                    onMouseLeave={(e) => e.currentTarget.style.background = 'white'}>
+                    <div style={{ fontSize: '48px', marginBottom: '12px' }}>🌾</div>
+                    <div style={{ fontSize: '18px', fontWeight: '600', color: '#111', marginBottom: '8px' }}>Donors</div>
+                    <div style={{ fontSize: '40px', fontWeight: '700', color: '#111', marginBottom: '4px' }}>512</div>
+                    <div style={{ fontSize: '14px', color: '#767676' }}>Generous givers</div>
+                  </div>
+
+                  <div style={{ background: 'white', border: '1px solid #efefef', borderRadius: '16px', padding: '32px', textAlign: 'center', cursor: 'pointer', transition: 'all 0.2s' }}
+                    onMouseEnter={(e) => e.currentTarget.style.background = '#fafafa'}
+                    onMouseLeave={(e) => e.currentTarget.style.background = 'white'}>
+                    <div style={{ fontSize: '48px', marginBottom: '12px' }}>👤</div>
+                    <div style={{ fontSize: '18px', fontWeight: '600', color: '#111', marginBottom: '8px' }}>Food Seekers</div>
+                    <div style={{ fontSize: '40px', fontWeight: '700', color: '#111', marginBottom: '4px' }}>1,204</div>
+                    <div style={{ fontSize: '14px', color: '#767676' }}>Community members</div>
+                  </div>
+
+                  <div style={{ background: 'white', border: '1px solid #efefef', borderRadius: '16px', padding: '32px', textAlign: 'center', cursor: 'pointer', transition: 'all 0.2s' }}
+                    onMouseEnter={(e) => e.currentTarget.style.background = '#fafafa'}
+                    onMouseLeave={(e) => e.currentTarget.style.background = 'white'}>
+                    <div style={{ fontSize: '48px', marginBottom: '12px' }}>✅</div>
+                    <div style={{ fontSize: '18px', fontWeight: '600', color: '#111', marginBottom: '8px' }}>Verifiers</div>
+                    <div style={{ fontSize: '40px', fontWeight: '700', color: '#111', marginBottom: '4px' }}>45</div>
+                    <div style={{ fontSize: '14px', color: '#767676' }}>Quality checkers</div>
+                  </div>
+                </div>
+
+                <div style={{ background: 'white', border: '1px solid #efefef', borderRadius: '16px', padding: '32px', marginTop: '32px' }}>
+                  <h2 style={{ fontSize: '24px', fontWeight: '600', color: '#111', marginBottom: '24px', textAlign: 'center' }}>📊 Total Impact</h2>
+                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '24px', textAlign: 'center' }}>
+                    <div>
+                      <div style={{ fontSize: '36px', fontWeight: '700', color: '#111', marginBottom: '4px' }}>2,240</div>
+                      <div style={{ fontSize: '14px', color: '#767676' }}>Total Users</div>
+                    </div>
+                    <div>
+                      <div style={{ fontSize: '36px', fontWeight: '700', color: '#111', marginBottom: '4px' }}>15.2K</div>
+                      <div style={{ fontSize: '14px', color: '#767676' }}>Meals Saved</div>
+                    </div>
+                    <div>
+                      <div style={{ fontSize: '36px', fontWeight: '700', color: '#111', marginBottom: '4px' }}>38 tons</div>
+                      <div style={{ fontSize: '14px', color: '#767676' }}>CO₂ Reduced</div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        );
       default:
-        return <HomeView 
-          foodListings={foodListings} 
-          onFoodLike={handleFoodLikeToggle}
-          onFoodReserve={handleFoodReserve}
-          onOpenFoodModal={handleOpenFoodModal}
-        />;
+        return <HomeView foodListings={foodListings} onLikeToggle={handleFoodLikeToggle} onReserve={handleFoodReserve} onOpenFoodModal={(food) => { setSelectedFood(food); setShowFoodModal(true); }} onViewChange={setCurrentView} />;
     }
   };
 
-  // If not authenticated, show the login screen
   if (!isAuthenticated) {
     return (
       <div className="min-h-screen bg-gray-50 overflow-x-hidden">
-        <Header
-          onMenuToggle={() => setShowSidebar(!showSidebar)}
-          onAIChatToggle={() => setShowAIChat(!showAIChat)}
-          onNotificationsToggle={handleNotificationToggle}
-          onHomeClick={() => {
-            setCurrentView('home');
-            setShowSidebar(false);
-          }}
-          notifications={notifications}
-          isLargeScreen={window.innerWidth >= 1024}
-          isAuthenticated={isAuthenticated}
-          user={user}
-          onLoginClick={() => {
-            setAuthMode('login');
-            setShowAuthModal(true);
-          }}
-          onSignupClick={() => {
-            setAuthMode('signup');
-            setShowAuthModal(true);
-          }}
-          onProfileClick={() => setCurrentView('profile')}
-          profileImage={profileImage}
-        />
-        
-        <NotLoggedInView 
-          onLoginClick={() => {
-            setAuthMode('login');
-            setShowAuthModal(true);
-          }}
-          onSignupClick={() => {
-            setAuthMode('signup');
-            setShowAuthModal(true);
-          }}
-        />
-        
-        {showAuthModal && (
-          <AuthModal
-            isOpen={showAuthModal}
-            onClose={() => setShowAuthModal(false)}
-            mode={authMode}
-            onModeChange={setAuthMode}
-            onLogin={handleLogin}
-          />
-        )}
+        <Header onMenuToggle={() => setShowSidebar(!showSidebar)} onAIChatToggle={() => setShowAIChat(!showAIChat)} onNotificationsToggle={() => setShowNotifications(!showNotifications)} onHomeClick={() => setCurrentView('home')} notifications={notifications} isLargeScreen={window.innerWidth >= 1024} isAuthenticated={isAuthenticated} user={user} onLoginClick={() => { setAuthMode('login'); setShowAuthModal(true); }} onSignupClick={() => { setAuthMode('signup'); setShowAuthModal(true); }} onProfileClick={() => setCurrentView('profile')} profileImage={profileImage} />
+        <NotLoggedInView onLoginClick={() => { setAuthMode('login'); setShowAuthModal(true); }} onSignupClick={() => { setAuthMode('signup'); setShowAuthModal(true); }} />
+        {showAuthModal && <AuthModal isOpen={showAuthModal} onClose={() => setShowAuthModal(false)} mode={authMode} onModeChange={setAuthMode} onLogin={handleLogin} />}
       </div>
     );
   }
@@ -364,269 +534,111 @@ function App() {
       <Header
         onMenuToggle={() => setShowSidebar(!showSidebar)}
         onAIChatToggle={() => setShowAIChat(!showAIChat)}
-        onNotificationsToggle={handleNotificationToggle}
-        onHomeClick={() => {
-          setCurrentView('home');
+        onNotificationsToggle={() => setShowNotifications(!showNotifications)} 
+        onHomeClick={() => { 
+          setCurrentView('home'); 
           setShowSidebar(false);
-        }}
-        notifications={notifications}
+        }} 
+        notifications={notifications} 
         isLargeScreen={window.innerWidth >= 1024}
-        isAuthenticated={isAuthenticated}
-        user={user}
-        onLoginClick={() => {
-          setAuthMode('login');
-          setShowAuthModal(true);
-        }}
-        onSignupClick={() => {
-          setAuthMode('signup');
-          setShowAuthModal(true);
-        }}
-        onProfileClick={() => setCurrentView('profile')}
-        profileImage={profileImage}
+        isAuthenticated={isAuthenticated} 
+        user={user} 
+        onLoginClick={() => { setAuthMode('login'); setShowAuthModal(true); }} 
+        onSignupClick={() => { setAuthMode('signup'); setShowAuthModal(true); }} 
+        onProfileClick={() => setCurrentView('profile')} 
+        profileImage={profileImage} 
       />
-
       <Sidebar
         isOpen={showSidebar}
         onClose={() => setShowSidebar(false)}
         currentView={currentView}
-        onViewChange={setCurrentView}
-        userRole={userRole}
-        onRoleChange={setUserRole}
+        onViewChange={(view) => { 
+          setCurrentView(view); 
+          setShowSidebar(false); 
+        }} 
+        userRole={userRole} 
+        onRoleChange={setUserRole} 
+        onAddFood={() => setShowAddFoodModal(true)} 
       />
-
       <main className="pt-20 pb-24 min-h-screen overflow-y-auto">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          {renderCurrentView()}
+        {renderCurrentView()}
         </div>
       </main>
-
-      {showAIChat && (
-        <AIChat
-          showAIChat={showAIChat}
-          onClose={() => setShowAIChat(false)}
-          foodListings={foodListings}
-        />
-      )}
-
-      {showFoodModal && selectedFood && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4 overflow-y-auto">
-          <div className="bg-white rounded-lg shadow-xl w-full max-w-2xl max-h-[90vh] overflow-y-auto my-4">
-            <FoodModal
-              selectedFood={selectedFood}
-              onClose={handleCloseFoodModal}
-              onReserve={() => handleFoodReserve(selectedFood.id)}
-            />
-          </div>
-        </div>
-      )}
-
+      {showFoodModal && selectedFood && <FoodModal selectedFood={selectedFood} onClose={() => { setShowFoodModal(false); setSelectedFood(null); }} onReserve={() => handleFoodReserve(selectedFood.id)} />}
       {showNotifications && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4 overflow-y-auto">
-          <div className="bg-white rounded-lg shadow-xl w-full max-w-md max-h-[80vh] overflow-y-auto my-4">
-            <div className="p-6">
-              <div className="flex justify-between items-center mb-4">
-                <h2 className="text-xl font-semibold">Notifications</h2>
+        <div className="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4">
+          <div className="bg-white rounded-lg shadow-xl w-full max-w-md p-4">
+            <div className="flex justify-between items-center mb-4">
+              <h2 className="text-xl font-semibold">Notifications</h2>
+              <div className="flex items-center gap-2">
                 <button
-                  onClick={handleNotificationToggle}
-                  className="text-gray-500 hover:text-gray-700"
+                  onClick={() => setNotifications(prev => prev.map(n => ({ ...n, isRead: true })))} 
+                  className="text-sm bg-blue-500 text-white px-3 py-1 rounded hover:bg-blue-600 font-medium"
                 >
-                  ✕
+                  Mark All Read
                 </button>
-              </div>
-              <div className="space-y-3">
-                {notifications.map((notification) => (
-                  <div
-                    key={notification.id}
-                    onClick={() => handleNotificationClick(notification.id)}
-                    className={`p-3 rounded-lg cursor-pointer transition-colors ${
-                      notification.isRead 
-                        ? 'bg-gray-50 text-gray-600' 
-                        : 'bg-blue-50 text-blue-900 border-l-4 border-blue-500'
-                    }`}
-                  >
-                    <h3 className="font-medium">{notification.title}</h3>
-                    <p className="text-sm mt-1">{notification.message}</p>
-                    <p className="text-xs text-gray-500 mt-2">{notification.timestamp}</p>
-                  </div>
-                ))}
-                {notifications.length > 0 && (
-                  <button
-                    onClick={handleMarkAllNotificationsRead}
-                    className="w-full mt-4 px-4 py-2 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300 transition-colors"
-                  >
-                    Mark All as Read
-                  </button>
-                )}
+                <button onClick={() => setShowNotifications(false)} className="text-gray-500 hover:text-gray-700 text-2xl leading-none">✕</button>
               </div>
             </div>
+              {notifications.length === 0 ? (
+                <p className="text-gray-500 text-center py-8">No notifications</p>
+              ) : (
+              <div className="space-y-2 max-h-96 overflow-y-auto">
+                {notifications.map(n => (
+                  <div key={n.id} className={`p-3 rounded-lg cursor-pointer transition-colors ${n.isRead ? 'bg-gray-50 text-gray-600' : 'bg-blue-50 text-blue-900 font-medium'}`} onClick={() => setNotifications(prev => prev.map(notif => notif.id === n.id ? { ...notif, isRead: true } : notif))}>
+                    <p className="font-semibold">{n.title}</p>
+                    <p className="text-sm">{n.message}</p>
+                    <p className="text-xs text-gray-500 mt-1">{n.timestamp}</p>
+                    </div>
+                  ))}
+                </div>
+              )}
           </div>
         </div>
       )}
-
-      {showEditModal && editingFood && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4 overflow-y-auto">
-          <div className="bg-white rounded-lg shadow-xl w-full max-w-2xl max-h-[90vh] overflow-y-auto my-4">
-            <div className="p-6">
-              <div className="flex justify-between items-center mb-4">
-                <h2 className="text-xl font-semibold">Edit Food Item: {editingFood.name}</h2>
-                <button
-                  onClick={() => setShowEditModal(false)}
-                  className="text-gray-500 hover:text-gray-700"
-                >
-                  ✕
-                </button>
-              </div>
-              <form className="space-y-4">
-                <div>
-                  <label className="block text-sm font-medium text-gray-700">Food Name</label>
-                  <input
-                    type="text"
-                    defaultValue={editingFood.name}
-                    className="mt-1 block w-full border border-gray-300 rounded-md px-3 py-2"
-                  />
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700">Restaurant</label>
-                  <input
-                    type="text"
-                    defaultValue={editingFood.restaurant}
-                    className="mt-1 block w-full border border-gray-300 rounded-md px-3 py-2"
-                  />
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700">Category</label>
-                  <select
-                    defaultValue={editingFood.category}
-                    className="mt-1 block w-full border border-gray-300 rounded-md px-3 py-2"
-                  >
-                    <option value="Vegetarian">Vegetarian</option>
-                    <option value="Non-Vegetarian">Non-Vegetarian</option>
-                    <option value="Vegan">Vegan</option>
-                    <option value="Dessert">Dessert</option>
-                  </select>
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700">Description</label>
-                  <textarea
-                    defaultValue={editingFood.description}
-                    rows={3}
-                    className="mt-1 block w-full border border-gray-300 rounded-md px-3 py-2"
-                  />
-                </div>
-                <div className="flex justify-end space-x-3">
-                  <button
-                    type="button"
-                    onClick={() => setShowEditModal(false)}
-                    className="px-4 py-2 text-gray-700 bg-gray-200 rounded-md hover:bg-gray-300"
-                  >
-                    Cancel
-                  </button>
-                  <button
-                    type="submit"
-                    className="px-4 py-2 bg-green-500 text-white rounded-md hover:bg-green-600"
-                  >
-                    Save Changes
-                  </button>
-                </div>
-              </form>
-            </div>
-          </div>
-        </div>
-      )}
-
+      {showAIChat && <AIChat showAIChat={showAIChat} onClose={() => setShowAIChat(false)} foodListings={foodListings} />}
       {showAddFoodModal && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4 overflow-y-auto">
-          <div className="bg-white rounded-lg shadow-xl w-full max-w-2xl max-h-[90vh] overflow-y-auto my-4">
-            <div className="p-6">
-              <div className="flex justify-between items-center mb-4">
-                <h2 className="text-xl font-semibold">Add New Food Item</h2>
-                <button
-                  onClick={() => setShowAddFoodModal(false)}
-                  className="text-gray-500 hover:text-gray-700"
-                >
-                  ✕
-                </button>
+        <div className="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4">
+          <div className="bg-white rounded-lg shadow-xl w-full max-w-2xl p-6">
+            <h2 className="text-xl font-semibold mb-4">Add New Food Item</h2>
+            <form onSubmit={(e) => {
+              e.preventDefault();
+              const fd = new FormData(e.target);
+              setFoodListings(prev => [{
+                id: Date.now(),
+                name: fd.get('name'),
+                restaurant: user?.username || 'Your Restaurant',
+                category: fd.get('category'),
+                originalPrice: 0,
+                discountedPrice: 0,
+                rating: 4.0,
+                image: fd.get('category') === 'Vegetarian' ? '🥗' : fd.get('category') === 'Non-Vegetarian' ? '🍗' : '🌱',
+                description: fd.get('description'),
+                isReserved: false,
+                isLiked: false,
+                quantity: 5,
+                co2Saved: 2.0
+              }, ...prev]);
+              setShowAddFoodModal(false);
+              e.target.reset();
+            }}>
+              <input type="text" name="name" required placeholder="Food Name" className="w-full border p-2 rounded mb-3" />
+              <select name="category" required className="w-full border p-2 rounded mb-3">
+                <option value="Vegetarian">Vegetarian</option>
+                <option value="Non-Vegetarian">Non-Vegetarian</option>
+                <option value="Vegan">Vegan</option>
+              </select>
+              <textarea name="description" required placeholder="Description" className="w-full border p-2 rounded mb-3" rows={3} />
+              <div className="flex gap-3">
+                <button type="button" onClick={() => setShowAddFoodModal(false)} className="px-4 py-2 bg-gray-200 rounded">Cancel</button>
+                <button type="submit" className="px-4 py-2 bg-green-500 text-white rounded">Add</button>
               </div>
-              <form onSubmit={handleAddFood} className="space-y-4">
-                <div>
-                  <label className="block text-sm font-medium text-gray-700">Food Name *</label>
-                  <input
-                    type="text"
-                    name="name"
-                    required
-                    className="mt-1 block w-full border border-gray-300 rounded-md px-3 py-2"
-                    placeholder="Enter food name"
-                  />
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700">Restaurant *</label>
-                  <input
-                    type="text"
-                    name="restaurant"
-                    required
-                    className="mt-1 block w-full border border-gray-300 rounded-md px-3 py-2"
-                    placeholder="Enter restaurant name"
-                  />
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700">Category *</label>
-                  <select
-                    name="category"
-                    required
-                    className="mt-1 block w-full border border-gray-300 rounded-md px-3 py-2"
-                  >
-                    <option value="">Select category</option>
-                    <option value="Vegetarian">Vegetarian</option>
-                    <option value="Non-Vegetarian">Non-Vegetarian</option>
-                    <option value="Vegan">Vegan</option>
-                    <option value="Dessert">Dessert</option>
-                  </select>
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700">Description *</label>
-                  <textarea
-                    name="description"
-                    required
-                    rows={3}
-                    className="mt-1 block w-full border border-gray-300 rounded-md px-3 py-2"
-                    placeholder="Describe the food item"
-                  />
-                </div>
-                <div className="bg-green-50 p-4 rounded-lg">
-                  <p className="text-green-800 text-sm">
-                    <strong>Note:</strong> All food items on KindBite are free to help reduce food waste!
-                  </p>
-                </div>
-                <div className="flex justify-end space-x-3">
-                  <button
-                    type="button"
-                    onClick={() => setShowAddFoodModal(false)}
-                    className="px-4 py-2 text-gray-700 bg-gray-200 rounded-md hover:bg-gray-300"
-                  >
-                    Cancel
-                  </button>
-                  <button
-                    type="submit"
-                    className="px-4 py-2 bg-green-500 text-white rounded-md hover:bg-green-600"
-                  >
-                    Add Food Item
-                  </button>
-                </div>
-              </form>
-            </div>
+            </form>
           </div>
         </div>
       )}
-
-      {showAuthModal && (
-        <AuthModal
-          isOpen={showAuthModal}
-          onClose={() => setShowAuthModal(false)}
-          mode={authMode}
-          onModeChange={setAuthMode}
-          onLogin={handleLogin}
-        />
-      )}
+      {showAuthModal && <AuthModal isOpen={showAuthModal} onClose={() => setShowAuthModal(false)} mode={authMode} onModeChange={setAuthMode} onLogin={handleLogin} />}
     </div>
   );
 }

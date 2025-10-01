@@ -1,7 +1,21 @@
 import React from 'react';
 import { Menu, Bot, Bell } from 'lucide-react';
 
-const Header = ({ onMenuToggle, onAIChatToggle, onNotificationsToggle, onHomeClick, notifications = [], isLargeScreen = true, userRole = 'end-user', isAuthenticated = false, user = null, onLoginClick, onSignupClick, onProfileClick, profileImage = null }) => {
+const Header = ({ 
+  onMenuToggle, 
+  onAIChatToggle, 
+  onNotificationsToggle, 
+  onHomeClick, 
+  notifications = [], 
+  isLargeScreen = true, 
+  userRole = 'end-user', 
+  isAuthenticated = false, 
+  user = null, 
+  onLoginClick, 
+  onSignupClick, 
+  onProfileClick, 
+  profileImage = null 
+}) => {
   return (
     <div className="bg-white border-b border-gray-200 fixed top-0 left-0 right-0 z-40">
       <div className="flex items-center justify-between px-4 py-3">
@@ -48,12 +62,12 @@ const Header = ({ onMenuToggle, onAIChatToggle, onNotificationsToggle, onHomeCli
               >
                 Login
               </button>
-                     <button
-                       onClick={onSignupClick}
-                       className="bg-blue-500 text-white px-4 py-2 rounded-lg font-medium hover:bg-blue-600 transition-colors duration-200"
-                     >
-                       Sign Up
-                     </button>
+              <button
+                onClick={onSignupClick}
+                className="bg-blue-500 text-white px-4 py-2 rounded-lg font-medium hover:bg-blue-600 transition-colors duration-200"
+              >
+                Sign Up
+              </button>
             </div>
           ) : (
             <div className="flex items-center space-x-2">

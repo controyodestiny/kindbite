@@ -1,7 +1,7 @@
-import React, { useState } from 'react';
+import React, { useState, memo } from 'react';
 import { X, User, Mail, Lock, Eye, EyeOff, LogIn, UserPlus, Phone, Smartphone } from 'lucide-react';
 
-const AuthModal = ({ isOpen, onClose, mode, onModeChange, onLogin }) => {
+const AuthModal = memo(({ isOpen, onClose, mode, onModeChange, onLogin }) => {
   const [formData, setFormData] = useState({
     username: '',
     email: '',
@@ -389,6 +389,6 @@ const AuthModal = ({ isOpen, onClose, mode, onModeChange, onLogin }) => {
       </div>
     </div>
   );
-};
+});
 
 export default AuthModal;

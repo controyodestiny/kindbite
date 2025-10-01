@@ -1,5 +1,5 @@
 import React from 'react';
-import { Users, Calendar, MessageCircle } from 'lucide-react';
+import { Users, Calendar, MessageCircle, Leaf } from 'lucide-react';
 
 const CommunityView = ({ onViewChange }) => {
   return (
@@ -25,27 +25,50 @@ const CommunityView = ({ onViewChange }) => {
           </div>
         </div>
         
-        <div className="grid grid-cols-3 gap-4 lg:gap-6">
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-4 lg:gap-6">
           <button 
-            onClick={() => onViewChange('news')} 
-            className="bg-white border border-gray-200 rounded-lg p-4 text-center hover:shadow-md transition-shadow"
+            onClick={() => {
+              if (onViewChange) {
+                onViewChange('news');
+              }
+            }} 
+            className="bg-white border border-gray-200 rounded-lg p-4 text-center hover:shadow-md transition-shadow hover:scale-105 transform transition-all duration-200"
           >
             <Calendar className="mx-auto mb-2 text-blue-600 w-6 h-6 lg:w-8 lg:h-8" />
             <span className="font-medium text-sm lg:text-base">News & Events</span>
           </button>
           <button 
-            onClick={() => onViewChange('chat')} 
-            className="bg-white border border-gray-200 rounded-lg p-4 text-center hover:shadow-md transition-shadow"
+            onClick={() => {
+              if (onViewChange) {
+                onViewChange('messages');
+              }
+            }} 
+            className="bg-white border border-gray-200 rounded-lg p-4 text-center hover:shadow-md transition-shadow hover:scale-105 transform transition-all duration-200"
           >
             <MessageCircle className="mx-auto mb-2 text-green-600 w-6 h-6 lg:w-8 lg:h-8" />
             <span className="font-medium text-sm lg:text-base">Messages</span>
           </button>
           <button 
-            onClick={() => onViewChange('panels')} 
-            className="bg-white border border-gray-200 rounded-lg p-4 text-center hover:shadow-md transition-shadow"
+            onClick={() => {
+              if (onViewChange) {
+                onViewChange('panels');
+              }
+            }} 
+            className="bg-white border border-gray-200 rounded-lg p-4 text-center hover:shadow-md transition-shadow hover:scale-105 transform transition-all duration-200"
           >
             <Users className="mx-auto mb-2 text-purple-600 w-6 h-6 lg:w-8 lg:h-8" />
             <span className="font-medium text-sm lg:text-base">User Panels</span>
+          </button>
+          <button 
+            onClick={() => {
+              if (onViewChange) {
+                onViewChange('environment');
+              }
+            }} 
+            className="bg-white border border-gray-200 rounded-lg p-4 text-center hover:shadow-md transition-shadow hover:scale-105 transform transition-all duration-200"
+          >
+            <Leaf className="mx-auto mb-2 text-emerald-600 w-6 h-6 lg:w-8 lg:h-8" />
+            <span className="font-medium text-sm lg:text-base">Eco Impact</span>
           </button>
         </div>
 

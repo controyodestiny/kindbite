@@ -85,7 +85,7 @@ const FoodModal = ({ selectedFood, onClose, onReserve }) => {
           </div>
           
           <button 
-            onClick={() => onReserve(selectedFood)} 
+            onClick={() => onReserve(selectedFood.id)} 
             className="w-full bg-green-600 text-white py-3 rounded-lg font-semibold hover:bg-green-700 transition-colors lg:py-4 lg:text-lg"
           >
             Reserve Item

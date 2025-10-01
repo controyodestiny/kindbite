@@ -1,7 +1,7 @@
-import React from 'react';
+import React, { memo } from 'react';
 import { MapPin, Clock, Star, Tag, Heart } from 'lucide-react';
 
-const FoodCard = ({ food, onClick, onLikeToggle, onReserve }) => {
+const FoodCard = memo(({ food, onClick, onLikeToggle, onReserve }) => {
   if (!food) {
     return null;
   }
@@ -20,7 +20,7 @@ const FoodCard = ({ food, onClick, onLikeToggle, onReserve }) => {
   const handleLikeClick = (e) => {
     e.stopPropagation(); // Prevent opening the food modal
     if (onLikeToggle) {
-      onLikeToggle(food.id, !food.isLiked);
+      onLikeToggle(food.id);
     }
   };
 
@@ -46,21 +46,13 @@ const FoodCard = ({ food, onClick, onLikeToggle, onReserve }) => {
       </button>
 
       {/* Food Image/Icon */}
-      <div className="w-full h-32 bg-gray-100 rounded-lg mb-3 flex items-center justify-center overflow-hidden">
-        {food.image && food.image.startsWith('http') ? (
-          <img 
-            src={food.image} 
-            alt={food.name}
-            className="w-full h-full object-cover rounded-lg"
-            onError={(e) => {
-              e.target.style.display = 'none';
-              e.target.nextSibling.style.display = 'flex';
-            }}
-          />
-        ) : null}
-        <div className={`w-full h-full flex items-center justify-center text-4xl ${food.image && food.image.startsWith('http') ? 'hidden' : 'flex'}`}>
-          🍽️
-        </div>
+      <div className="w-full h-32 bg-gradient-to-br from-green-100 to-blue-100 rounded-lg mb-3 flex items-center justify-center">
+        <span className="text-6xl">
+          {food.category === 'Vegetarian' ? '🥗' : 
+           food.category === 'Non-Vegetarian' ? '🍗' : 
+           food.category === 'Vegan' ? '🌱' : 
+           food.category === 'Dessert' ? '🍰' : '🍽️'}
+        </span>
       </div>
 
       {/* Food Info */}
@@ -149,7 +141,7 @@ const FoodCard = ({ food, onClick, onLikeToggle, onReserve }) => {
               onClick={(e) => {
                 e.stopPropagation();
                 if (onReserve) {
-                  onReserve(food.id, !food.isReserved);
+                  onReserve(food.id);
                 }
               }}
               className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors duration-200 ${
@@ -166,6 +158,6 @@ const FoodCard = ({ food, onClick, onLikeToggle, onReserve }) => {
       </div>
     </div>
   );
-};
+});
 
 export default FoodCard;
