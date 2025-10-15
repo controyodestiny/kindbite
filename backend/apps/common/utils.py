@@ -102,3 +102,19 @@ class KindCoinsCalculator:
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

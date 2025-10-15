@@ -163,7 +163,7 @@ const AdminPanel = ({ onClose }) => {
                 <div className="w-2 h-2 bg-green-500 rounded-full"></div>
                 <div className="flex-1">
                   <p className="text-sm font-medium">{listing.name}</p>
-                  <p className="text-xs text-gray-500">Added {new Date(listing.created_at).toLocaleDateString()}</p>
+                  <p className="text-xs text-gray-500">Added {listing.created_at ? new Date(listing.created_at).toLocaleDateString() : 'Unknown date'}</p>
                 </div>
               </div>
             ))}

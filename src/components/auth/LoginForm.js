@@ -2,6 +2,13 @@ import React, { useState } from 'react';
 import { Eye, EyeOff, Mail, Lock, LogIn, X } from 'lucide-react';
 
 const LoginForm = ({ onLogin, onSwitchToRegister, isLoading, onClose }) => {
+  const handleClose = () => {
+    if (typeof onClose === 'function') {
+      onClose();
+    } else {
+      console.warn('onClose function is not defined in LoginForm');
+    }
+  };
   const [formData, setFormData] = useState({
     email: '',
     password: ''
@@ -53,7 +60,7 @@ const LoginForm = ({ onLogin, onSwitchToRegister, isLoading, onClose }) => {
   return (
     <div className="bg-white rounded-lg shadow-lg p-6 w-full max-w-md mx-auto relative">
       <button
-        onClick={onClose}
+        onClick={handleClose}
         className="absolute top-2 right-2 bg-white rounded-full p-1 shadow-lg hover:bg-gray-50 transition-colors z-10"
       >
         <X size={18} className="text-gray-600" />

@@ -18,8 +18,9 @@ class AIResponseService:
     """
     
     def __init__(self):
-        # Initialize OpenAI client
-        self.openai_client = OpenAI(api_key=settings.OPENAI_API_KEY) if settings.OPENAI_API_KEY else None
+        # Initialize OpenAI client as None - will be created when needed
+        self.openai_client = None
+        self._client_initialized = False
         
         self.system_prompt = """You are KindBite AI Assistant, a helpful and knowledgeable assistant for the KindBite food waste reduction platform. 
 
@@ -118,6 +119,40 @@ Always prioritize food safety. When in doubt about food safety, recommend consul
             • Transport food safely and consume promptly"""
         }
 
+    def _initialize_openai_client(self):
+        """Initialize OpenAI client when needed."""
+        if self._client_initialized:
+            return self.openai_client
+            
+        try:
+            if settings.OPENAI_API_KEY and settings.OPENAI_API_KEY != 'your-openai-api-key-here':
+                # Try different initialization methods for compatibility
+                try:
+                    self.openai_client = OpenAI(api_key=settings.OPENAI_API_KEY)
+                    print(f"✅ OpenAI client initialized with API key: {settings.OPENAI_API_KEY[:20]}...")
+                except Exception as init_error:
+                    print(f"❌ OpenAI client initialization failed: {init_error}")
+                    # Try alternative initialization
+                    try:
+                        import openai
+                        openai.api_key = settings.OPENAI_API_KEY
+                        self.openai_client = openai
+                        print(f"✅ OpenAI client initialized (legacy method) with API key: {settings.OPENAI_API_KEY[:20]}...")
+                    except Exception as legacy_error:
+                        print(f"❌ Legacy OpenAI initialization also failed: {legacy_error}")
+                        self.openai_client = None
+            else:
+                self.openai_client = None
+                print("❌ OpenAI API key not configured, using fallback responses")
+        except Exception as e:
+            print(f"❌ Error initializing OpenAI client: {e}")
+            import traceback
+            traceback.print_exc()
+            self.openai_client = None
+        
+        self._client_initialized = True
+        return self.openai_client
+
     def generate_response(self, user_message: str, session: ChatSession) -> Tuple[str, int]:
         """
         Generate an AI response to the user's message using OpenAI GPT.
@@ -140,15 +175,21 @@ Always prioritize food safety. When in doubt about food safety, recommend consul
             # Add current user message
             messages.append({"role": "user", "content": user_message})
             
+            # Initialize OpenAI client if needed
+            openai_client = self._initialize_openai_client()
+            
             # Generate response using OpenAI
-            if self.openai_client:
+            if openai_client and settings.OPENAI_API_KEY:
                 response = self._generate_openai_response(messages)
             else:
                 # Fallback to rule-based responses if no API key
+                print("OpenAI API key not configured, using fallback responses")
                 response = self._generate_fallback_response(user_message.lower().strip())
             
         except Exception as e:
             print(f"Error generating AI response: {e}")
+            import traceback
+            traceback.print_exc()
             response = self._get_error_response()
         
         # Calculate response time
@@ -159,19 +200,34 @@ Always prioritize food safety. When in doubt about food safety, recommend consul
     def _generate_openai_response(self, messages: List[Dict]) -> str:
         """Generate response using OpenAI API."""
         try:
-            response = self.openai_client.chat.completions.create(
-                model="gpt-3.5-turbo",
-                messages=messages,
-                max_tokens=500,
-                temperature=0.7,
-                presence_penalty=0.1,
-                frequency_penalty=0.1
-            )
-            
-            return response.choices[0].message.content.strip()
+            # Check if it's the new OpenAI client format
+            if hasattr(self.openai_client, 'chat'):
+                response = self.openai_client.chat.completions.create(
+                    model="gpt-3.5-turbo",
+                    messages=messages,
+                    max_tokens=500,
+                    temperature=0.7,
+                    presence_penalty=0.1,
+                    frequency_penalty=0.1
+                )
+                return response.choices[0].message.content.strip()
+            else:
+                # Legacy OpenAI client format
+                import openai
+                response = openai.ChatCompletion.create(
+                    model="gpt-3.5-turbo",
+                    messages=messages,
+                    max_tokens=500,
+                    temperature=0.7,
+                    presence_penalty=0.1,
+                    frequency_penalty=0.1
+                )
+                return response.choices[0].message.content.strip()
             
         except Exception as e:
             print(f"OpenAI API error: {e}")
+            import traceback
+            traceback.print_exc()
             return self._get_error_response()
 
     def _generate_fallback_response(self, message: str) -> str:

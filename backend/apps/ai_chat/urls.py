@@ -1,27 +1,19 @@
 """
-URL configuration for AI Chat app.
+AI Chat URL patterns for KindBite application.
 """
 from django.urls import path
 from . import views
 
-app_name = 'ai_chat'
-
 urlpatterns = [
-    # Chat session management
-    path('sessions/', views.ChatSessionListView.as_view(), name='session-list'),
-    path('sessions/<int:session_id>/', views.ChatSessionDetailView.as_view(), name='session-detail'),
-    path('sessions/new/', views.create_new_chat, name='create-session'),
+    # Chat session endpoints
+    path('sessions/', views.ChatSessionListView.as_view(), name='chat-session-list'),
+    path('sessions/new/', views.create_new_chat, name='create-chat-session'),
+    path('sessions/<int:pk>/', views.ChatSessionDetailView.as_view(), name='chat-session-detail'),
     
-    # Chat messaging
+    # Message endpoints
     path('send/', views.SendMessageView.as_view(), name='send-message'),
+    path('messages/<int:pk>/feedback/', views.ChatFeedbackView.as_view(), name='chat-feedback'),
     
-    # Feedback
-    path('messages/<int:message_id>/feedback/', views.ChatFeedbackView.as_view(), name='message-feedback'),
-    
-    # Statistics
+    # Stats and utility endpoints
     path('stats/', views.chat_stats, name='chat-stats'),
 ]
-
-
-
-

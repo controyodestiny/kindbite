@@ -8,11 +8,12 @@ from .models import FoodListing, FoodReservation, FoodRating, FoodCategory, Food
 
 
 class FoodImageSerializer(serializers.ModelSerializer):
-    """Serializer for food images."""
+    """Serializer for food images (URL-based)."""
     
     class Meta:
         model = FoodImage
         fields = ['id', 'image_url', 'alt_text', 'is_primary']
+        read_only_fields = ['id']
 
 
 class FoodListingListSerializer(serializers.ModelSerializer):
@@ -30,7 +31,7 @@ class FoodListingListSerializer(serializers.ModelSerializer):
             'id', 'name', 'restaurant_name', 'description', 
             'original_price', 'discounted_price', 'discount_percentage',
             'quantity', 'available_quantity', 'pickup_window', 'pickup_date',
-            'location', 'distance', 'provider_type', 'dietary_info',
+            'location', 'latitude', 'longitude', 'distance', 'provider_type', 'dietary_info',
             'image_emoji', 'co2_saved', 'rating', 'rating_count',
             'status', 'is_available', 'created_at',
             'provider_name', 'provider_business_name', 'images'
@@ -54,7 +55,7 @@ class FoodListingDetailSerializer(serializers.ModelSerializer):
             'id', 'name', 'restaurant_name', 'description',
             'original_price', 'discounted_price', 'discount_percentage',
             'quantity', 'available_quantity', 'pickup_window_start', 'pickup_window_end',
-            'pickup_date', 'location', 'distance', 'provider_type', 'dietary_info',
+            'pickup_date', 'location', 'latitude', 'longitude', 'distance', 'provider_type', 'dietary_info',
             'image_emoji', 'co2_saved', 'rating', 'rating_count',
             'status', 'is_available', 'created_at', 'updated_at',
             'provider_name', 'provider_business_name', 'provider_email', 'provider_phone',
@@ -71,7 +72,7 @@ class FoodListingCreateUpdateSerializer(serializers.ModelSerializer):
             'name', 'restaurant_name', 'description',
             'original_price', 'discounted_price', 'quantity',
             'pickup_window_start', 'pickup_window_end', 'pickup_date',
-            'location', 'dietary_info', 'image_emoji', 'co2_saved'
+            'location', 'provider_type', 'dietary_info', 'image_emoji', 'co2_saved'
         ]
 
     def validate(self, data):
@@ -220,6 +221,10 @@ class FoodStatsSerializer(serializers.Serializer):
     total_co2_saved = serializers.DecimalField(max_digits=10, decimal_places=2)
     total_kindcoins_earned = serializers.IntegerField()
     average_rating = serializers.DecimalField(max_digits=3, decimal_places=2)
+
+
+
+
 
 
 

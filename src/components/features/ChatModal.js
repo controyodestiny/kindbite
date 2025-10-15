@@ -352,7 +352,11 @@ const ChatModal = ({ conversation, onClose, onSendMessage }) => {
   };
 
   const formatTime = (timestamp) => {
+    if (!timestamp) return 'Unknown time';
+    
     const date = new Date(timestamp);
+    if (isNaN(date.getTime())) return 'Invalid time';
+    
     const now = new Date();
     const diffInHours = (now - date) / (1000 * 60 * 60);
 
@@ -430,8 +434,9 @@ const ChatModal = ({ conversation, onClose, onSendMessage }) => {
           ) : (
             localMessages.map((message, index) => {
               const showDate = index === 0 || 
+                (message.fullTimestamp && localMessages[index - 1]?.fullTimestamp &&
                 new Date(message.fullTimestamp).toDateString() !== 
-                new Date(localMessages[index - 1].fullTimestamp).toDateString();
+                new Date(localMessages[index - 1].fullTimestamp).toDateString());
               
               return (
                 <div key={message.id}>

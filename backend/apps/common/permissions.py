@@ -79,3 +79,19 @@ class IsVerifiedUser(permissions.BasePermission):
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

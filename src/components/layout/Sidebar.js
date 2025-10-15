@@ -1,7 +1,7 @@
 import React from 'react';
 import { 
   ChefHat, Home, Building, ShoppingBag, Gift, Stethoscope, 
-  UserCheck, Coins, User, X, MessageCircle, Calendar, Users
+  UserCheck, Coins, User, X, MessageCircle, Calendar, Users, LogOut
 } from 'lucide-react';
 
 const Sidebar = ({ 
@@ -11,22 +11,24 @@ const Sidebar = ({
   onViewChange,
   onAdminPanelOpen,
   userRole,
-  onRoleChange
+  onRoleChange,
+  onLogout,
+  isLargeScreen = false
 }) => {
   const userPanels = {
-    cafe: { icon: ChefHat, title: "Cafe", color: "bg-orange-500" },
-    restaurant: { icon: ChefHat, title: "Restaurant", color: "bg-orange-500" },
-    retail: { icon: ShoppingBag, title: "Retail Shop", color: "bg-purple-500" },
-    bakery: { icon: ChefHat, title: "Bakery", color: "bg-yellow-500" },
+    cafe: { icon: ChefHat, title: "Cafe", color: "bg-green-500" },
+    restaurant: { icon: ChefHat, title: "Restaurant", color: "bg-green-500" },
+    retail: { icon: ShoppingBag, title: "Retail Shop", color: "bg-green-500" },
+    bakery: { icon: ChefHat, title: "Bakery", color: "bg-green-500" },
     grocery: { icon: ShoppingBag, title: "Grocery Store", color: "bg-green-500" },
-    hotel: { icon: Building, title: "Hotel", color: "bg-red-500" },
-    home: { icon: Home, title: "Home Kitchen", color: "bg-blue-500" },
-    factory: { icon: Building, title: "Food Factory", color: "bg-gray-500" },
-    supermarket: { icon: ShoppingBag, title: "Supermarket", color: "bg-purple-500" },
-    verifier: { icon: Stethoscope, title: "Food Verifier", color: "bg-red-500" },
+    hotel: { icon: Building, title: "Hotel", color: "bg-green-500" },
+    home: { icon: Home, title: "Home Kitchen", color: "bg-green-500" },
+    factory: { icon: Building, title: "Food Factory", color: "bg-green-500" },
+    supermarket: { icon: ShoppingBag, title: "Supermarket", color: "bg-green-500" },
+    verifier: { icon: Stethoscope, title: "Food Verifier", color: "bg-green-500" },
     ambassador: { icon: UserCheck, title: "Food Ambassador", color: "bg-green-500" },
-    donor: { icon: Coins, title: "Donor/Buyer", color: "bg-indigo-500" },
-    "end-user": { icon: User, title: "Food Seeker", color: "bg-teal-500" }
+    donor: { icon: Coins, title: "Donor/Buyer", color: "bg-green-500" },
+    "end-user": { icon: User, title: "Food Seeker", color: "bg-green-500" }
   };
 
   // Role-specific menu items
@@ -34,54 +36,102 @@ const Sidebar = ({
     const menus = {
       cafe: [
         { id: 'home', label: 'Dashboard', icon: Home },
-        { id: 'add-food', label: 'Add Food Items', icon: ChefHat },
-        { id: 'my-food', label: 'My Food Listings', icon: Calendar },
+        { id: 'food-management', label: 'Add Food Items', icon: ChefHat },
+        { id: 'food-management', label: 'My Food Listings', icon: Calendar },
         { id: 'reservations', label: 'Reservations', icon: MessageCircle },
-        { id: 'analytics', label: 'Analytics', icon: Coins },
+        { id: 'points', label: 'Analytics', icon: Coins },
         { id: 'profile', label: 'Profile', icon: User }
       ],
       restaurant: [
         { id: 'home', label: 'Dashboard', icon: Home },
-        { id: 'add-food', label: 'Add Food Items', icon: ChefHat },
-        { id: 'my-food', label: 'My Food Listings', icon: Calendar },
+        { id: 'food-management', label: 'Add Food Items', icon: ChefHat },
+        { id: 'food-management', label: 'My Food Listings', icon: Calendar },
         { id: 'reservations', label: 'Reservations', icon: MessageCircle },
-        { id: 'analytics', label: 'Analytics', icon: Coins },
+        { id: 'points', label: 'Analytics', icon: Coins },
         { id: 'profile', label: 'Profile', icon: User }
       ],
       retail: [
         { id: 'home', label: 'Dashboard', icon: Home },
-        { id: 'add-food', label: 'Add Food Items', icon: ShoppingBag },
-        { id: 'my-food', label: 'My Food Listings', icon: Calendar },
+        { id: 'food-management', label: 'Add Food Items', icon: ShoppingBag },
+        { id: 'food-management', label: 'My Food Listings', icon: Calendar },
         { id: 'reservations', label: 'Reservations', icon: MessageCircle },
-        { id: 'inventory', label: 'Inventory', icon: Building },
+        { id: 'food-management', label: 'Inventory', icon: Building },
         { id: 'profile', label: 'Profile', icon: User }
       ],
       bakery: [
         { id: 'home', label: 'Dashboard', icon: Home },
-        { id: 'add-food', label: 'Add Food Items', icon: ChefHat },
-        { id: 'my-food', label: 'My Food Listings', icon: Calendar },
+        { id: 'food-management', label: 'Add Food Items', icon: ChefHat },
+        { id: 'my-food-listings', label: 'My Food Listings', icon: Calendar },
         { id: 'reservations', label: 'Reservations', icon: MessageCircle },
-        { id: 'schedule', label: 'Baking Schedule', icon: Calendar },
+        { id: 'food-management', label: 'Baking Schedule', icon: Calendar },
         { id: 'profile', label: 'Profile', icon: User }
       ],
       grocery: [
         { id: 'home', label: 'Dashboard', icon: Home },
-        { id: 'add-food', label: 'Add Food Items', icon: ShoppingBag },
-        { id: 'my-food', label: 'My Food Listings', icon: Calendar },
+        { id: 'food-management', label: 'Add Food Items', icon: ShoppingBag },
+        { id: 'my-food-listings', label: 'My Food Listings', icon: Calendar },
         { id: 'reservations', label: 'Reservations', icon: MessageCircle },
-        { id: 'inventory', label: 'Inventory', icon: Building },
+        { id: 'food-management', label: 'Inventory', icon: Building },
         { id: 'profile', label: 'Profile', icon: User }
       ],
       hotel: [
         { id: 'home', label: 'Dashboard', icon: Home },
-        { id: 'add-food', label: 'Add Food Items', icon: ChefHat },
-        { id: 'my-food', label: 'My Food Listings', icon: Calendar },
+        { id: 'food-management', label: 'Add Food Items', icon: ChefHat },
+        { id: 'my-food-listings', label: 'My Food Listings', icon: Calendar },
         { id: 'reservations', label: 'Reservations', icon: MessageCircle },
-        { id: 'events', label: 'Events', icon: Calendar },
+        { id: 'food-management', label: 'Events', icon: Calendar },
+        { id: 'profile', label: 'Profile', icon: User }
+      ],
+      factory: [
+        { id: 'home', label: 'Dashboard', icon: Home },
+        { id: 'food-management', label: 'Add Food Items', icon: Building },
+        { id: 'my-food-listings', label: 'My Food Listings', icon: Calendar },
+        { id: 'reservations', label: 'Reservations', icon: MessageCircle },
+        { id: 'points', label: 'Analytics', icon: Coins },
+        { id: 'profile', label: 'Profile', icon: User }
+      ],
+      supermarket: [
+        { id: 'home', label: 'Dashboard', icon: Home },
+        { id: 'food-management', label: 'Add Food Items', icon: ShoppingBag },
+        { id: 'my-food-listings', label: 'My Food Listings', icon: Calendar },
+        { id: 'reservations', label: 'Reservations', icon: MessageCircle },
+        { id: 'points', label: 'Analytics', icon: Coins },
+        { id: 'profile', label: 'Profile', icon: User }
+      ],
+      home: [
+        { id: 'home', label: 'Dashboard', icon: Home },
+        { id: 'food-management', label: 'Add Food Items', icon: ChefHat },
+        { id: 'my-food-listings', label: 'My Food Listings', icon: Calendar },
+        { id: 'reservations', label: 'Reservations', icon: MessageCircle },
+        { id: 'points', label: 'Analytics', icon: Coins },
+        { id: 'profile', label: 'Profile', icon: User }
+      ],
+      verifier: [
+        { id: 'home', label: 'Dashboard', icon: Home },
+        { id: 'community', label: 'Community', icon: Users },
+        { id: 'points', label: 'Analytics', icon: Coins },
+        { id: 'profile', label: 'Profile', icon: User }
+      ],
+      ambassador: [
+        { id: 'home', label: 'Dashboard', icon: Home },
+        { id: 'community', label: 'Community', icon: Users },
+        { id: 'points', label: 'Analytics', icon: Coins },
+        { id: 'profile', label: 'Profile', icon: User }
+      ],
+      donor: [
+        { id: 'home', label: 'Dashboard', icon: Home },
+        { id: 'points', label: 'Analytics', icon: Coins },
+        { id: 'profile', label: 'Profile', icon: User }
+      ],
+      "end-user": [
+        { id: 'home', label: 'Dashboard', icon: Home },
+        { id: 'search', label: 'Search', icon: Users },
+        { id: 'community', label: 'Community', icon: Users },
+        { id: 'points', label: 'Points', icon: Coins },
         { id: 'profile', label: 'Profile', icon: User }
       ]
     };
-    return menus[role] || menus.cafe;
+    return menus[role] || menus["end-user"];
   };
 
   const currentRole = userPanels[userRole] || userPanels.cafe;
@@ -131,19 +181,43 @@ const Sidebar = ({
           );
         })}
       </div>
+
+      {/* Logout Button */}
+      <div className="mt-auto p-4 border-t border-gray-200">
+        <button
+          onClick={() => {
+            onLogout();
+            onClose();
+          }}
+          className="w-full flex items-center space-x-3 p-3 rounded-lg hover:bg-red-50 text-red-600 hover:text-red-700 transition-colors"
+        >
+          <LogOut size={20} />
+          <span className="font-medium">Logout</span>
+        </button>
+      </div>
     </div>
   );
 
-  // Mobile: slide-out menu
-  return (
-    isOpen && (
-      <div className="fixed inset-0 z-50 bg-black bg-opacity-50" onClick={onClose}>
-        <div className="fixed left-0 top-0 h-full w-80 bg-white shadow-lg overflow-y-auto" onClick={e => e.stopPropagation()}>
-          {sidebarContent}
-        </div>
+  // Desktop: fixed sidebar, Mobile: slide-out menu
+  if (isLargeScreen) {
+    // Desktop: Always visible fixed sidebar
+    return (
+      <div className="hidden lg:block fixed left-0 top-0 h-full w-64 bg-white shadow-lg z-30">
+        {sidebarContent}
       </div>
-    )
-  );
+    );
+  } else {
+    // Mobile: slide-out menu
+    return (
+      isOpen && (
+        <div className="fixed inset-0 z-50 bg-black bg-opacity-50" onClick={onClose}>
+          <div className="fixed left-0 top-0 h-full w-80 bg-white shadow-lg overflow-y-auto" onClick={e => e.stopPropagation()}>
+            {sidebarContent}
+          </div>
+        </div>
+      )
+    );
+  }
 };
 
 export default Sidebar;

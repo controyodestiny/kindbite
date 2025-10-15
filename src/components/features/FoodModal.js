@@ -29,7 +29,7 @@ const FoodModal = ({ selectedFood, onClose, onReserve }) => {
         <div className="p-4 lg:p-6">
           <div className="flex justify-between items-start mb-4">
             <h2 className="font-bold text-gray-800 text-xl lg:text-2xl">
-              {selectedFood.name}
+              {selectedFood.name || 'Food Item'}
             </h2>
             <button 
               onClick={onClose} 
@@ -41,35 +41,35 @@ const FoodModal = ({ selectedFood, onClose, onReserve }) => {
           
           <div className="text-center mb-4">
             <div className="mb-2 text-6xl lg:text-7xl">
-              {selectedFood.image}
+              {selectedFood.image_emoji || selectedFood.image || '🍽️'}
             </div>
             <h3 className="font-semibold text-gray-700 lg:text-lg">
-              {selectedFood.restaurant}
+              {selectedFood.restaurant_name || selectedFood.restaurant || 'Unknown Restaurant'}
             </h3>
-            <span className="text-xs px-2 py-1 rounded-full lg:text-sm lg:px-3 lg:py-1 ${getProviderColor(selectedFood.provider)}">
-              {getProviderLabel(selectedFood.provider)}
+            <span className={`text-xs px-2 py-1 rounded-full lg:text-sm lg:px-3 lg:py-1 ${getProviderColor(selectedFood.provider_type || selectedFood.provider)}`}>
+              {getProviderLabel(selectedFood.provider_type || selectedFood.provider)}
             </span>
           </div>
           
           <div className="space-y-3 mb-6 lg:space-y-4">
             <div className="text-center">
               <p className="text-gray-600 text-sm lg:text-base">
-                {selectedFood.description}
+                {selectedFood.description || 'No description available'}
               </p>
             </div>
             
             <div className="grid grid-cols-2 gap-4 text-center">
               <div>
                 <div className="font-bold text-green-600 lg:text-lg">
-                  {selectedFood.discountedPrice === 0 ? 'FREE' : `UGX ${selectedFood.discountedPrice.toLocaleString()}`}
+                  {(selectedFood.discounted_price || selectedFood.discountedPrice || 0) === 0 ? 'FREE' : `UGX ${(selectedFood.discounted_price || selectedFood.discountedPrice || 0).toLocaleString()}`}
                 </div>
                 <div className="text-xs text-gray-500 lg:text-sm">
-                  {selectedFood.discountedPrice === 0 ? 'No Cost' : 'Discounted Price'}
+                  {(selectedFood.discounted_price || selectedFood.discountedPrice || 0) === 0 ? 'No Cost' : 'Discounted Price'}
                 </div>
               </div>
               <div>
                 <div className="font-bold text-orange-600 lg:text-lg">
-                  {selectedFood.quantity}
+                  {selectedFood.quantity || selectedFood.available_quantity || 0}
                 </div>
                 <div className="text-xs text-gray-500 lg:text-sm">
                   Plates Left
@@ -79,7 +79,7 @@ const FoodModal = ({ selectedFood, onClose, onReserve }) => {
             
             <div className="text-center">
               <div className="text-sm text-green-600 lg:text-base">
-                🌱 {selectedFood.co2Saved}kg CO₂ saved • {(selectedFood.co2Saved * 10).toFixed(0)}L water saved
+                🌱 {selectedFood.co2_saved || selectedFood.co2Saved || 0}kg CO₂ saved • {((selectedFood.co2_saved || selectedFood.co2Saved || 0) * 10).toFixed(0)}L water saved
               </div>
             </div>
           </div>

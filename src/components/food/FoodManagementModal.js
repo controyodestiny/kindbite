@@ -4,6 +4,7 @@ import AddFoodModal from './AddFoodModal';
 import EditFoodModal from './EditFoodModal';
 import DeleteFoodModal from './DeleteFoodModal';
 import foodService from '../../services/foodService';
+import apiService from '../../services/apiService';
 import { useToast } from '../../contexts/ToastContext';
 
 const FoodManagementModal = ({ isOpen, onClose, user, userFoodListings, onAddFood, onUpdateFood, onDeleteFood }) => {
@@ -19,23 +20,57 @@ const FoodManagementModal = ({ isOpen, onClose, user, userFoodListings, onAddFoo
   // Load food statistics when modal opens
   useEffect(() => {
     if (isOpen && user) {
-      loadFoodStats();
+      // Add a small delay to ensure authentication is ready
+      const timer = setTimeout(() => {
+        loadFoodStats();
+      }, 100);
+      
+      return () => clearTimeout(timer);
     }
   }, [isOpen, user]);
 
   const loadFoodStats = async () => {
     try {
-      const stats = await foodService.getFoodStats();
-      setFoodStats(stats);
+      // Check if user is authenticated before making API call
+      const token = localStorage.getItem('kindbite_access_token');
+      if (!token) {
+        console.log('No access token available, skipping food stats load');
+        return;
+      }
+      
+      try {
+        const stats = await foodService.getFoodStats();
+        setFoodStats(stats);
+      } catch (statsError) {
+        // If food stats load fails with 403, try refreshing token and retry
+        if (statsError.status === 403) {
+          console.log('Food stats load failed with 403, attempting token refresh...');
+          const refreshSuccess = await apiService.refreshToken();
+          if (refreshSuccess) {
+            console.log('Token refreshed, retrying food stats load...');
+            const retryStats = await foodService.getFoodStats();
+            setFoodStats(retryStats);
+          } else {
+            console.log('Token refresh failed, skipping food stats load');
+          }
+        } else {
+          throw statsError;
+        }
+      }
     } catch (error) {
       console.error('Failed to load food stats:', error);
+      // Don't show error to user if it's an auth issue
+      if (error.status !== 403) {
+        toast.error('Failed to load food statistics');
+      }
     }
   };
 
   const handleAddFood = (newFood) => {
     onAddFood(newFood);
     setShowAddModal(false);
-    loadFoodStats(); // Refresh stats
+    // Don't refresh stats here as it can cause duplicates
+    // The parent component will handle the refresh
   };
 
   const handleEditFood = (food) => {
@@ -47,7 +82,8 @@ const FoodManagementModal = ({ isOpen, onClose, user, userFoodListings, onAddFoo
     onUpdateFood(updatedFood);
     setShowEditModal(false);
     setEditingFood(null);
-    loadFoodStats(); // Refresh stats
+    // Don't refresh stats here as it can cause duplicates
+    // The parent component will handle the refresh
   };
 
   const handleDeleteFood = (food) => {
@@ -59,7 +95,8 @@ const FoodManagementModal = ({ isOpen, onClose, user, userFoodListings, onAddFoo
     onDeleteFood(foodId);
     setShowDeleteModal(false);
     setDeletingFood(null);
-    loadFoodStats(); // Refresh stats
+    // Don't refresh stats here as it can cause duplicates
+    // The parent component will handle the refresh
   };
 
   const handleRefresh = async () => {
@@ -178,17 +215,17 @@ const FoodManagementModal = ({ isOpen, onClose, user, userFoodListings, onAddFoo
                             <p className="text-gray-600 text-sm">{food.description}</p>
                             <div className="flex items-center space-x-4 mt-2 text-sm text-gray-500">
                               <span>📍 {food.location}</span>
-                              <span>🕒 {food.pickupWindow || `${food.pickupDate} ${food.pickupWindowStart}-${food.pickupWindowEnd}`}</span>
-                              <span>📦 {food.availableQuantity || food.quantity} available</span>
+                              <span>🕒 {food.pickup_window || `${food.pickup_date} ${food.pickup_window_start}-${food.pickup_window_end}`}</span>
+                              <span>📦 {food.available_quantity || food.quantity} available</span>
                             </div>
                           </div>
                           <div className="text-right">
                             <div className="text-lg font-bold text-green-600">
-                              {food.discountedPrice === 0 ? 'FREE' : `UGX ${food.discountedPrice.toLocaleString()}`}
+                              {food.discounted_price === 0 ? 'FREE' : `UGX ${(food.discounted_price || 0).toLocaleString()}`}
                             </div>
-                            {food.originalPrice > food.discountedPrice && (
+                            {food.original_price && food.discounted_price && food.original_price > food.discounted_price && (
                               <div className="text-sm text-gray-400 line-through">
-                                UGX {food.originalPrice.toLocaleString()}
+                                UGX {(food.original_price || 0).toLocaleString()}
                               </div>
                             )}
                           </div>

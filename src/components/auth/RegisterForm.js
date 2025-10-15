@@ -2,12 +2,19 @@ import React, { useState } from 'react';
 import { Eye, EyeOff, Mail, Lock, User, MapPin, Building, Phone, UserPlus, X } from 'lucide-react';
 
 const RegisterForm = ({ onRegister, onSwitchToLogin, isLoading, onClose }) => {
+  const handleClose = () => {
+    if (typeof onClose === 'function') {
+      onClose();
+    } else {
+      console.warn('onClose function is not defined in RegisterForm');
+    }
+  };
   const [formData, setFormData] = useState({
     first_name: '',
     last_name: '',
     email: '',
     password: '',
-    confirm_password: '',
+    password_confirm: '',
     phone: '',
     location: '',
     business_name: '',
@@ -67,8 +74,8 @@ const RegisterForm = ({ onRegister, onSwitchToLogin, isLoading, onClose }) => {
       newErrors.password = 'Password must be at least 6 characters';
     }
     
-    if (formData.password !== formData.confirm_password) {
-      newErrors.confirm_password = 'Passwords do not match';
+    if (formData.password !== formData.password_confirm) {
+      newErrors.password_confirm = 'Passwords do not match';
     }
     
     if (!formData.phone.trim()) {
@@ -101,7 +108,7 @@ const RegisterForm = ({ onRegister, onSwitchToLogin, isLoading, onClose }) => {
   return (
     <div className="bg-white rounded-lg shadow-lg p-4 w-full max-w-2xl mx-auto relative">
       <button
-        onClick={onClose}
+        onClick={handleClose}
         className="absolute top-2 right-2 bg-white rounded-full p-1 shadow-lg hover:bg-gray-50 transition-colors z-10"
       >
         <X size={18} className="text-gray-600" />
@@ -331,11 +338,11 @@ const RegisterForm = ({ onRegister, onSwitchToLogin, isLoading, onClose }) => {
               <Lock className="absolute left-3 top-3 text-gray-400 w-5 h-5" />
               <input
                 type={showConfirmPassword ? 'text' : 'password'}
-                name="confirm_password"
-                value={formData.confirm_password}
+                name="password_confirm"
+                value={formData.password_confirm}
                 onChange={handleChange}
                 className={`w-full pl-10 pr-12 py-3 border rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500 ${
-                  errors.confirm_password ? 'border-red-500' : 'border-gray-300'
+                  errors.password_confirm ? 'border-red-500' : 'border-gray-300'
                 }`}
                 placeholder="Confirm your password"
               />
@@ -347,8 +354,8 @@ const RegisterForm = ({ onRegister, onSwitchToLogin, isLoading, onClose }) => {
                 {showConfirmPassword ? <EyeOff size={20} /> : <Eye size={20} />}
               </button>
             </div>
-            {errors.confirm_password && (
-              <p className="text-red-500 text-sm mt-1">{errors.confirm_password}</p>
+            {errors.password_confirm && (
+              <p className="text-red-500 text-sm mt-1">{errors.password_confirm}</p>
             )}
           </div>
         </div>

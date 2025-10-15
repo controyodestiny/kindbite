@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
-import { X, Upload, Clock, MapPin, DollarSign, Package, Leaf } from 'lucide-react';
+import { X, Upload, Clock, MapPin, DollarSign, Package, Leaf, Camera, Image as ImageIcon } from 'lucide-react';
+import ImageUpload from './ImageUpload';
 
 const AddFoodForm = ({ user, onClose, onAddFood }) => {
   const [formData, setFormData] = useState({
@@ -16,6 +17,9 @@ const AddFoodForm = ({ user, onClose, onAddFood }) => {
   });
   const [errors, setErrors] = useState({});
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [uploadedImages, setUploadedImages] = useState([]);
+  const [useImageUpload, setUseImageUpload] = useState(false);
+  const [imageFiles, setImageFiles] = useState([]);
 
   const dietaryOptions = [
     'Halal', 'Vegetarian', 'Vegan', 'Gluten-Free', 'Dairy-Free', 
@@ -48,6 +52,35 @@ const AddFoodForm = ({ user, onClose, onAddFood }) => {
         ? prev.dietary.filter(d => d !== dietary)
         : [...prev.dietary, dietary]
     }));
+  };
+
+  const handleImageSelect = (e) => {
+    const files = Array.from(e.target.files);
+    
+    // Validate file count
+    if (imageFiles.length + files.length > 5) {
+      alert('You can only upload up to 5 images.');
+      return;
+    }
+
+    // Validate file types and sizes
+    const validFiles = files.filter(file => {
+      if (!file.type.startsWith('image/')) {
+        alert(`${file.name} is not an image file.`);
+        return false;
+      }
+      if (file.size > 5 * 1024 * 1024) { // 5MB limit
+        alert(`${file.name} is too large. Please choose a file smaller than 5MB.`);
+        return false;
+      }
+      return true;
+    });
+
+    setImageFiles(prev => [...prev, ...validFiles]);
+  };
+
+  const removeImage = (index) => {
+    setImageFiles(prev => prev.filter((_, i) => i !== index));
   };
 
   const validateForm = () => {
@@ -92,26 +125,54 @@ const AddFoodForm = ({ user, onClose, onAddFood }) => {
     setIsSubmitting(true);
     
     try {
+      // Parse pickup window to extract start and end times
+      const pickupWindowParts = formData.pickupWindow.split(' - ');
+      const startTime = pickupWindowParts[0] || '17:00';
+      const endTime = pickupWindowParts[1] || '19:00';
+      
+      // Get today's date for pickup
+      const today = new Date();
+      const pickupDate = today.toISOString().split('T')[0]; // YYYY-MM-DD format
+      
       const newFood = {
-        id: Date.now(),
-        restaurant: user?.businessName || `${user?.firstName} ${user?.lastName}`,
+        // Basic Information
+        restaurant_name: user?.business_name || `${user?.first_name} ${user?.last_name}`,
         name: formData.name,
         description: formData.description,
-        originalPrice: parseInt(formData.originalPrice),
-        discountedPrice: parseInt(formData.discountedPrice),
+        
+        // Pricing (backend expects decimal fields)
+        original_price: parseFloat(formData.originalPrice),
+        discounted_price: parseFloat(formData.discountedPrice),
+        
+        // Availability
         quantity: parseInt(formData.quantity),
-        rating: 4.5, // Default rating
-        distance: "0.5 km", // Default distance
-        pickupWindow: formData.pickupWindow,
-        dietary: formData.dietary,
-        image: formData.image,
-        co2Saved: parseFloat(formData.co2Saved),
-        provider: user?.userRole || 'restaurant',
+        available_quantity: parseInt(formData.quantity), // Same as quantity initially
+        
+        // Logistics
+        pickup_window_start: startTime,
+        pickup_window_end: endTime,
+        pickup_date: pickupDate,
+        
+        // Location
         location: formData.location,
-        createdAt: new Date().toISOString()
+        
+        // Categorization
+        provider_type: user?.user_role || 'restaurant',
+        dietary_info: formData.dietary,
+        
+        // Visual
+        image_emoji: formData.image,
+        
+        // Environmental Impact
+        co2_saved: parseFloat(formData.co2Saved),
+        
+        // Status
+        status: 'available',
+        is_active: true
       };
 
-      await onAddFood(newFood);
+      // Pass both food data and image files to the parent component
+      await onAddFood(newFood, imageFiles);
       onClose();
     } catch (error) {
       console.error('Error adding food:', error);
@@ -121,7 +182,7 @@ const AddFoodForm = ({ user, onClose, onAddFood }) => {
   };
 
   const getRoleSpecificTitle = () => {
-    switch(user?.userRole) {
+    switch(user?.user_role) {
       case 'restaurant': return 'Add Menu Item';
       case 'home': return 'Share Home-Cooked Meal';
       case 'factory': return 'List Production Surplus';
@@ -132,7 +193,7 @@ const AddFoodForm = ({ user, onClose, onAddFood }) => {
   };
 
   const getRoleSpecificDescription = () => {
-    switch(user?.userRole) {
+    switch(user?.user_role) {
       case 'restaurant': return 'Add surplus meals from your restaurant';
       case 'home': return 'Share your home-cooked meals with the community';
       case 'factory': return 'List surplus products from your production';
@@ -163,20 +224,110 @@ const AddFoodForm = ({ user, onClose, onAddFood }) => {
           <label className="block text-sm font-medium text-gray-700 mb-2">
             Food Image
           </label>
-          <div className="grid grid-cols-10 gap-2">
-            {foodImages.map((emoji) => (
-              <button
-                key={emoji}
-                type="button"
-                onClick={() => setFormData(prev => ({ ...prev, image: emoji }))}
-                className={`p-2 border-2 rounded-lg text-lg hover:bg-gray-50 ${
-                  formData.image === emoji ? 'border-green-500 bg-green-50' : 'border-gray-200'
-                }`}
-              >
-                {emoji}
-              </button>
-            ))}
+          
+          {/* Image Type Toggle */}
+          <div className="flex space-x-2 mb-3">
+            <button
+              type="button"
+              onClick={() => setUseImageUpload(false)}
+              className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
+                !useImageUpload 
+                  ? 'bg-green-500 text-white' 
+                  : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+              }`}
+            >
+              <ImageIcon className="w-4 h-4 inline mr-2" />
+              Emoji
+            </button>
+            <button
+              type="button"
+              onClick={() => setUseImageUpload(true)}
+              className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
+                useImageUpload 
+                  ? 'bg-green-500 text-white' 
+                  : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+              }`}
+            >
+              <Camera className="w-4 h-4 inline mr-2" />
+              Upload Image
+            </button>
           </div>
+
+          {!useImageUpload ? (
+            <div className="grid grid-cols-10 gap-2">
+              {foodImages.map((emoji) => (
+                <button
+                  key={emoji}
+                  type="button"
+                  onClick={() => setFormData(prev => ({ ...prev, image: emoji }))}
+                  className={`p-2 border-2 rounded-lg text-lg hover:bg-gray-50 ${
+                    formData.image === emoji ? 'border-green-500 bg-green-50' : 'border-gray-200'
+                  }`}
+                >
+                  {emoji}
+                </button>
+              ))}
+            </div>
+          ) : (
+            <div className="space-y-4">
+              <div className="text-center text-gray-600 mb-4">
+                <Camera className="w-8 h-8 mx-auto mb-2 text-green-500" />
+                <p className="text-sm font-medium">Upload Food Images</p>
+                <p className="text-xs text-gray-500">Select up to 5 images (5MB each)</p>
+              </div>
+              
+              {/* Image Upload Area */}
+              <div className="border-2 border-dashed border-gray-300 rounded-lg p-6 text-center hover:border-green-400 transition-colors">
+                <input
+                  type="file"
+                  multiple
+                  accept="image/*"
+                  onChange={handleImageSelect}
+                  className="hidden"
+                  id="image-upload"
+                />
+                <label
+                  htmlFor="image-upload"
+                  className="cursor-pointer block"
+                >
+                  <div className="space-y-2">
+                    <div className="mx-auto w-12 h-12 bg-gray-100 rounded-full flex items-center justify-center">
+                      <ImageIcon className="w-6 h-6 text-gray-400" />
+                    </div>
+                    <div>
+                      <p className="text-sm font-medium text-gray-700">Click to select images</p>
+                      <p className="text-xs text-gray-500">or drag and drop images here</p>
+                    </div>
+                  </div>
+                </label>
+              </div>
+
+              {/* Selected Images Preview */}
+              {imageFiles.length > 0 && (
+                <div className="space-y-2">
+                  <p className="text-sm font-medium text-gray-700">Selected Images ({imageFiles.length}/5):</p>
+                  <div className="grid grid-cols-2 md:grid-cols-3 gap-2">
+                    {imageFiles.map((file, index) => (
+                      <div key={index} className="relative group">
+                        <img
+                          src={URL.createObjectURL(file)}
+                          alt={`Preview ${index + 1}`}
+                          className="w-full h-24 object-cover rounded-lg border border-gray-200"
+                        />
+                        <button
+                          type="button"
+                          onClick={() => removeImage(index)}
+                          className="absolute top-1 right-1 bg-red-500 text-white p-1 rounded-full opacity-0 group-hover:opacity-100 transition-opacity"
+                        >
+                          <X size={12} />
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+            </div>
+          )}
         </div>
 
         {/* Food Name and Description */}

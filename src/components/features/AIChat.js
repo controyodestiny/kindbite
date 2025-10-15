@@ -1,8 +1,7 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { Send, Bot, X, MessageCircle, Brain, Sparkles } from 'lucide-react';
 
-const AIChat = ({ showAIChat, onClose, aiMessages, aiInput, onAiInputChange, onSendMessage, foodListings }) => {
-  const [isTyping, setIsTyping] = useState(false);
+const AIChat = ({ showAIChat, onClose, aiMessages, aiInput, onAiInputChange, onSendMessage, foodListings, isTyping = false }) => {
   const messagesEndRef = useRef(null);
   const [conversationContext, setConversationContext] = useState([]);
   const [userPreferences, setUserPreferences] = useState({
@@ -41,18 +40,22 @@ const AIChat = ({ showAIChat, onClose, aiMessages, aiInput, onAiInputChange, onS
     }));
   };
 
-  // Simple AI that actually works
-  const generateAIResponse = (userMessage, foodListings) => {
-    console.log('AI function called with:', userMessage);
-    
-    // Always return a simple response for testing
-    return "Hello! I'm working now. What do you need help with?";
-  };
+  // AI response is now handled by the parent component via API
 
   // Scroll to bottom when new messages arrive
   useEffect(() => {
     scrollToBottom();
   }, [aiMessages]);
+
+  // Smooth scroll to bottom function
+  const scrollToBottom = () => {
+    if (messagesEndRef.current) {
+      messagesEndRef.current.scrollIntoView({ 
+        behavior: 'smooth',
+        block: 'end'
+      });
+    }
+  };
 
   // Add natural welcome message when AI chat opens
   useEffect(() => {
@@ -72,9 +75,6 @@ const AIChat = ({ showAIChat, onClose, aiMessages, aiInput, onAiInputChange, onS
     }
   }, [showAIChat]);
 
-  const scrollToBottom = () => {
-    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
-  };
 
   const handleSendMessage = async () => {
     if (aiInput.trim()) {
@@ -92,40 +92,11 @@ const AIChat = ({ showAIChat, onClose, aiMessages, aiInput, onAiInputChange, onS
       // Update user preferences based on message
       updateUserPreferences(aiInput);
       
-      // Send user message
-      onSendMessage(userMessage);
-
       // Clear input
       onAiInputChange({ target: { value: '' } });
 
-      // Show typing indicator
-      setIsTyping(true);
-      
-      // Add a small delay to make the AI feel more natural
-      await new Promise(resolve => setTimeout(resolve, 500 + Math.random() * 1000));
-      
-      // Use our intelligent AI system (100% offline - no APIs)
-      console.log('Calling generateAIResponse with:', aiInput);
-      const aiResponse = generateAIResponse(aiInput, foodListings);
-      console.log('AI response:', aiResponse);
-      
-      // Create AI message from response
-      const aiMessage = {
-        id: Date.now() + 1,
-        text: aiResponse,
-        sender: 'ai',
-        timestamp: new Date().toLocaleTimeString(),
-        fullTimestamp: new Date().toISOString()
-      };
-
-      // Add AI response to conversation context
-      setConversationContext(prev => [...prev, { role: 'assistant', content: aiMessage.text }]);
-      
-      // Send AI message
-      onSendMessage(aiMessage);
-      
-      // Hide typing indicator
-      setIsTyping(false);
+      // Send message to parent component (which handles API call)
+      await onSendMessage(userMessage);
     }
   };
 
@@ -140,9 +111,9 @@ const AIChat = ({ showAIChat, onClose, aiMessages, aiInput, onAiInputChange, onS
 
   return (
     <div className="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4">
-      <div className="bg-white rounded-lg shadow-xl w-full max-w-4xl h-[80vh] max-h-[600px] overflow-hidden">
+      <div className="bg-white rounded-lg shadow-xl w-full max-w-4xl h-[80vh] max-h-[600px] flex flex-col overflow-hidden">
         {/* Header */}
-        <div className="bg-gradient-to-r from-green-500 to-blue-500 text-white p-4 flex items-center justify-between">
+        <div className="bg-gradient-to-r from-green-500 to-blue-500 text-white p-4 flex items-center justify-between flex-shrink-0">
           <div className="flex items-center space-x-3">
             <div className="w-10 h-10 bg-white/20 rounded-full flex items-center justify-center">
               <Bot size={24} />
@@ -161,8 +132,18 @@ const AIChat = ({ showAIChat, onClose, aiMessages, aiInput, onAiInputChange, onS
           </button>
         </div>
 
-        {/* Messages */}
-        <div className="flex-1 overflow-y-auto p-4 space-y-4">
+        {/* Messages Container - Scrollable with hidden scrollbar */}
+        <div className="flex-1 overflow-y-auto p-4 space-y-4 scrollbar-hide" style={{
+          scrollbarWidth: 'none', /* Firefox */
+          msOverflowStyle: 'none', /* Internet Explorer 10+ */
+        }}>
+          {/* Custom scrollbar hiding for webkit browsers */}
+          <style jsx>{`
+            .scrollbar-hide::-webkit-scrollbar {
+              display: none;
+            }
+          `}</style>
+          
           {aiMessages.map((message) => (
             <div
               key={message.id}
@@ -201,8 +182,8 @@ const AIChat = ({ showAIChat, onClose, aiMessages, aiInput, onAiInputChange, onS
           <div ref={messagesEndRef} />
         </div>
 
-        {/* Input */}
-        <div className="border-t p-4">
+        {/* Fixed Input Area */}
+        <div className="border-t bg-white p-4 flex-shrink-0">
           <div className="flex space-x-2">
             <input
               type="text"
@@ -210,18 +191,19 @@ const AIChat = ({ showAIChat, onClose, aiMessages, aiInput, onAiInputChange, onS
               onChange={onAiInputChange}
               onKeyPress={handleKeyPress}
               placeholder="Ask me anything about food, reservations, or the app..."
-              className="flex-1 border border-gray-300 rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-green-500"
+              className="flex-1 border border-gray-300 rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent resize-none"
+              autoFocus
             />
             <button
               onClick={handleSendMessage}
               disabled={!aiInput.trim() || isTyping}
-              className="bg-green-500 text-white px-4 py-2 rounded-lg hover:bg-green-600 disabled:opacity-50 disabled:cursor-not-allowed transition-colors duration-200"
+              className="bg-green-500 text-white px-4 py-2 rounded-lg hover:bg-green-600 disabled:opacity-50 disabled:cursor-not-allowed transition-colors duration-200 flex items-center justify-center"
             >
               <Send size={20} />
             </button>
             <button
               onClick={onClose}
-              className="bg-red-500 text-white px-4 py-2 rounded-lg hover:bg-red-600 transition-colors duration-200"
+              className="bg-red-500 text-white px-4 py-2 rounded-lg hover:bg-red-600 transition-colors duration-200 flex items-center justify-center"
               title="Close AI Chat"
             >
               <X size={20} />

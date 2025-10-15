@@ -1,11 +1,25 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { X } from 'lucide-react';
 import LoginForm from './LoginForm';
 import RegisterForm from './RegisterForm';
 
-const AuthModal = ({ isOpen, onClose, onLogin, onRegister }) => {
-  const [isLoginMode, setIsLoginMode] = useState(true);
+const AuthModal = ({ isOpen, onClose, onLogin, onRegister, initialMode = 'login' }) => {
+  const [isLoginMode, setIsLoginMode] = useState(initialMode === 'login');
   const [isLoading, setIsLoading] = useState(false);
+
+  // Update mode when initialMode prop changes
+  useEffect(() => {
+    setIsLoginMode(initialMode === 'login');
+  }, [initialMode]);
+
+  // Defensive check for onClose function
+  const handleClose = () => {
+    if (typeof onClose === 'function') {
+      onClose();
+    } else {
+      console.warn('onClose function is not defined');
+    }
+  };
 
   if (!isOpen) return null;
 
@@ -13,7 +27,7 @@ const AuthModal = ({ isOpen, onClose, onLogin, onRegister }) => {
     setIsLoading(true);
     try {
       await onLogin(loginData);
-      onClose();
+      handleClose();
     } catch (error) {
       console.error('Login error:', error);
       // Error toast is handled in AuthContext
@@ -26,7 +40,7 @@ const AuthModal = ({ isOpen, onClose, onLogin, onRegister }) => {
     setIsLoading(true);
     try {
       await onRegister(registerData);
-      onClose();
+      handleClose();
     } catch (error) {
       console.error('Registration error:', error);
       // Error toast is handled in AuthContext
@@ -58,14 +72,14 @@ const AuthModal = ({ isOpen, onClose, onLogin, onRegister }) => {
             onLogin={handleLogin}
             onSwitchToRegister={switchToRegister}
             isLoading={isLoading}
-            onClose={onClose}
+            onClose={handleClose}
           />
         ) : (
           <RegisterForm
             onRegister={handleRegister}
             onSwitchToLogin={switchToLogin}
             isLoading={isLoading}
-            onClose={onClose}
+            onClose={handleClose}
           />
         )}
       </div>

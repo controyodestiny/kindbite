@@ -1,519 +1,496 @@
-import React, { useState, useEffect, useRef } from 'react';
-import { Edit3, Save, X, Camera, MapPin, Calendar, Award, Heart, Leaf, Users, TrendingUp } from 'lucide-react';
-import apiService from '../services/api';
+import React, { useState, useEffect } from 'react';
+import { User, Edit3, Save, X, Eye, EyeOff, Camera, Phone, Mail, MapPin, Building } from 'lucide-react';
+import { useAuth } from '../contexts/AuthContext';
+import { useToast } from '../contexts/ToastContext';
+import apiService from '../services/apiService';
 
-const ProfileView = ({ onViewChange, user, onLogout, onProfileImageChange }) => {
+const ProfileView = ({ userPoints }) => {
+  const { user, isAuthenticated, updateUser } = useAuth();
+  const toast = useToast();
+  const [selectedPeriod, setSelectedPeriod] = useState('today');
   const [isEditing, setIsEditing] = useState(false);
-  const [profileData, setProfileData] = useState({
-    name: user?.username || 'Alex Johnson',
-    occupation: 'Software Developer',
-    location: 'Kampala, Uganda',
-    bio: 'Passionate about food rescue and environmental sustainability. Love trying new cuisines and reducing food waste.',
-    email: user?.email || 'alex.johnson@email.com',
-    phone: '+256 123 456 789',
-    dietaryPreferences: ['Vegetarian', 'Halal'],
-    favoriteCuisines: ['Italian', 'Indian', 'Local Ugandan'],
-    joinDate: user?.joinDate || '2024-01-15'
-  });
-  const [profileImage, setProfileImage] = useState(null);
-  const [fileInputRef] = useState(useRef());
+  const [isChangingPassword, setIsChangingPassword] = useState(false);
+  const [showPassword, setShowPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
-  const [userStats, setUserStats] = useState({
-    kindCoins: 245,
-    mealsRescued: 12,
-    co2Saved: 8.4,
-    waterSaved: 84,
-    communityRank: 'Eco Warrior',
-    streakDays: 7,
-    totalDonations: 3,
-    favoriteFood: 'Chapati & Beans'
+  
+  // Form states
+  const [profileData, setProfileData] = useState({
+    first_name: '',
+    last_name: '',
+    email: '',
+    phone: '',
+    location: '',
+    business_name: '',
+    profile_image: ''
   });
+  
+  const [passwordData, setPasswordData] = useState({
+    current_password: '',
+    new_password: '',
+    confirm_password: ''
+  });
+  
+  const impactData = {
+    today: { meals: 12, co2: 8.4, kindcoins: 245, water: 125, packaging: 1.2, foodMiles: 0.3, treesEquiv: 2, carKmEquiv: 35 },
+    week: { meals: 45, co2: 32.1, kindcoins: 890, water: 485, packaging: 4.8, foodMiles: 1.2, treesEquiv: 7, carKmEquiv: 134 },
+    month: { meals: 156, co2: 125.6, kindcoins: 3240, water: 1845, packaging: 18.2, foodMiles: 4.8, treesEquiv: 28, carKmEquiv: 524 },
+    year: { meals: 1840, co2: 1456.8, kindcoins: 38750, water: 22145, packaging: 218.6, foodMiles: 58.2, treesEquiv: 325, carKmEquiv: 6089 }
+  };
 
+  const currentData = impactData[selectedPeriod];
+  const periodLabels = { today: 'Today', week: 'This Week', month: 'This Month', year: 'This Year' };
+
+  // Initialize form data when user changes
   useEffect(() => {
-    loadUserData();
-  }, []);
-
-  const loadUserData = async () => {
-    try {
-      setIsLoading(true);
-      
-      // Simulate loading delay
-      await new Promise(resolve => setTimeout(resolve, 500));
-      
-      // Load from localStorage if available
-      const savedProfile = localStorage.getItem('userProfile');
-      if (savedProfile) {
-        const parsedProfile = JSON.parse(savedProfile);
-        setProfileData(prev => ({ ...prev, ...parsedProfile }));
-        if (parsedProfile.profileImage) {
-          setProfileImage(parsedProfile.profileImage);
-          // Also update the header profile image
-          if (onProfileImageChange) {
-            onProfileImageChange(parsedProfile.profileImage);
-          }
-        }
-      }
-      
-    } catch (error) {
-      console.warn('Could not load user data:', error);
-      // Keep default values
-    } finally {
-      setIsLoading(false);
+    if (user) {
+      setProfileData({
+        first_name: user.first_name || '',
+        last_name: user.last_name || '',
+        email: user.email || '',
+        phone: user.phone || '',
+        location: user.location || '',
+        business_name: user.business_name || '',
+        profile_image: user.profile_image || ''
+      });
     }
-  };
+  }, [user]);
 
-  const handleEditClick = () => {
-    setIsEditing(true);
-  };
-
-  const handleSaveClick = async () => {
-    try {
-      setIsLoading(true);
-      
-      // Simulate API call delay
-      await new Promise(resolve => setTimeout(resolve, 1000));
-      
-      // Save to localStorage to persist data
-      const savedProfileData = {
-        ...profileData,
-        profileImage: profileImage
-      };
-      console.log('Saving profile data to localStorage:', savedProfileData);
-      localStorage.setItem('userProfile', JSON.stringify(savedProfileData));
-      console.log('Profile data saved successfully');
-      
-      // Update local state
-      setIsEditing(false);
-      
-      // Show success feedback
-      alert('Profile updated successfully!');
-      
-    } catch (error) {
-      console.error('Failed to update profile:', error);
-      alert('Failed to update profile. Please try again.');
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
-  const handleCancelClick = () => {
-    // Reload saved data to discard changes
-    loadUserData();
-    setIsEditing(false);
-  };
-
-  const handleInputChange = (field, value) => {
+  // Handle profile data changes
+  const handleProfileChange = (field, value) => {
     setProfileData(prev => ({
       ...prev,
       [field]: value
     }));
   };
 
-  const handleImageClick = () => {
-    if (isEditing) {
-      fileInputRef.current?.click();
-    }
+  // Handle password data changes
+  const handlePasswordChange = (field, value) => {
+    setPasswordData(prev => ({
+      ...prev,
+      [field]: value
+    }));
   };
 
-  const handleImageChange = (event) => {
-    const file = event.target.files[0];
-    if (file) {
-      const reader = new FileReader();
-      reader.onload = (e) => {
-        console.log('Profile image changed:', e.target.result);
-        setProfileImage(e.target.result);
-        // Pass the new profile image to the parent component
-        if (onProfileImageChange) {
-          console.log('Calling onProfileImageChange with:', e.target.result);
-          onProfileImageChange(e.target.result);
+  // Save profile changes
+  const handleSaveProfile = async () => {
+    try {
+      setIsLoading(true);
+      
+      // Check if user is authenticated
+      if (!user || !isAuthenticated) {
+        toast.error('You must be logged in to update your profile');
+        return;
+      }
+      
+      // Check if we have a valid token
+      const token = localStorage.getItem('kindbite_access_token');
+      if (!token) {
+        toast.error('Authentication token not found. Please login again.');
+        return;
+      }
+      
+      console.log('Attempting to update profile for user:', user.email);
+      
+      try {
+        const updatedUser = await apiService.updateProfile(profileData);
+        updateUser(updatedUser);
+        setIsEditing(false);
+        toast.success('Profile updated successfully!');
+      } catch (profileError) {
+        // If profile update fails with 403, try refreshing token and retry
+        if (profileError.status === 403) {
+          console.log('Profile update failed with 403, attempting token refresh...');
+          const refreshSuccess = await apiService.refreshToken();
+          if (refreshSuccess) {
+            console.log('Token refreshed, retrying profile update...');
+            const retryUpdatedUser = await apiService.updateProfile(profileData);
+            updateUser(retryUpdatedUser);
+            setIsEditing(false);
+            toast.success('Profile updated successfully!');
+          } else {
+            throw new Error('Authentication failed. Please login again.');
+          }
         } else {
-          console.log('onProfileImageChange function not provided');
+          throw profileError;
         }
-      };
-      reader.readAsDataURL(file);
+      }
+    } catch (error) {
+      console.error('Error updating profile:', error);
+      if (error.status === 403) {
+        toast.error('Authentication failed. Please login again.');
+      } else {
+        toast.error(error.message || 'Failed to update profile. Please try again.');
+      }
+    } finally {
+      setIsLoading(false);
     }
   };
 
-  const addDietaryPreference = (preference) => {
-    if (!profileData.dietaryPreferences.includes(preference)) {
-      setProfileData(prev => ({
-        ...prev,
-        dietaryPreferences: [...prev.dietaryPreferences, preference]
-      }));
+  // Change password
+  const handleChangePassword = async () => {
+    if (passwordData.new_password !== passwordData.confirm_password) {
+      toast.error('New passwords do not match');
+      return;
+    }
+
+    if (passwordData.new_password.length < 8) {
+      toast.error('Password must be at least 8 characters long');
+      return;
+    }
+
+    try {
+      setIsLoading(true);
+      
+      try {
+        await apiService.changePassword({
+          current_password: passwordData.current_password,
+          new_password: passwordData.new_password
+        });
+        setIsChangingPassword(false);
+        setPasswordData({ current_password: '', new_password: '', confirm_password: '' });
+        toast.success('Password changed successfully!');
+      } catch (passwordError) {
+        // If password change fails with 403, try refreshing token and retry
+        if (passwordError.status === 403) {
+          console.log('Password change failed with 403, attempting token refresh...');
+          const refreshSuccess = await apiService.refreshToken();
+          if (refreshSuccess) {
+            console.log('Token refreshed, retrying password change...');
+            await apiService.changePassword({
+              current_password: passwordData.current_password,
+              new_password: passwordData.new_password
+            });
+            setIsChangingPassword(false);
+            setPasswordData({ current_password: '', new_password: '', confirm_password: '' });
+            toast.success('Password changed successfully!');
+          } else {
+            throw new Error('Authentication failed. Please login again.');
+          }
+        } else {
+          throw passwordError;
+        }
+      }
+    } catch (error) {
+      console.error('Error changing password:', error);
+      toast.error(error.message || 'Failed to change password. Please try again.');
+    } finally {
+      setIsLoading(false);
     }
   };
 
-  const removeDietaryPreference = (preference) => {
-    setProfileData(prev => ({
-      ...prev,
-      dietaryPreferences: prev.dietaryPreferences.filter(p => p !== preference)
-    }));
+  // Cancel editing
+  const handleCancelEdit = () => {
+    setIsEditing(false);
+    setProfileData({
+      first_name: user?.first_name || '',
+      last_name: user?.last_name || '',
+      email: user?.email || '',
+      phone: user?.phone || '',
+      location: user?.location || '',
+      business_name: user?.business_name || '',
+      profile_image: user?.profile_image || ''
+    });
   };
 
-  const addFavoriteCuisine = (cuisine) => {
-    if (!profileData.favoriteCuisines.includes(cuisine)) {
-      setProfileData(prev => ({
-        ...prev,
-        favoriteCuisines: [...prev.favoriteCuisines, cuisine]
-      }));
-    }
-  };
-
-  const removeFavoriteCuisine = (cuisine) => {
-    setProfileData(prev => ({
-      ...prev,
-      favoriteCuisines: prev.favoriteCuisines.filter(c => c !== cuisine)
-    }));
-  };
-
-  const getRankColor = (rank) => {
-    switch (rank) {
-      case 'Eco Warrior': return 'from-green-500 to-emerald-500';
-      case 'Food Hero': return 'from-blue-500 to-cyan-500';
-      case 'Community Leader': return 'from-purple-500 to-pink-500';
-      case 'Sustainability Champion': return 'from-orange-500 to-red-500';
-      default: return 'from-gray-500 to-slate-500';
-    }
+  // Cancel password change
+  const handleCancelPasswordChange = () => {
+    setIsChangingPassword(false);
+    setPasswordData({ current_password: '', new_password: '', confirm_password: '' });
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-gray-50 via-white to-green-50 pt-20 pb-24">
-      <div className="p-4 lg:p-6 space-y-6">
-        {/* Profile Header */}
-        <div className="card-premium p-6 text-center">
-          <div className="relative inline-block mb-6">
-            <div 
-              className={`w-32 h-32 lg:w-40 lg:h-40 rounded-full overflow-hidden border-4 border-white shadow-2xl cursor-pointer transition-all duration-300 ${
-                isEditing ? 'hover:scale-105 hover:shadow-3xl' : ''
-              }`}
-              onClick={handleImageClick}
-            >
-              {profileImage ? (
-                <img 
-                  src={profileImage} 
-                  alt="Profile" 
-                  className="w-full h-full object-cover"
-                />
-              ) : (
-                <div className="w-full h-full bg-gradient-to-br from-green-400 to-blue-500 flex items-center justify-center">
-                  <span className="text-white text-4xl lg:text-5xl font-bold">
-                    {profileData.name?.charAt(0).toUpperCase() || 'U'}
-                  </span>
-                </div>
-              )}
-              {isEditing && (
-                <div className="absolute inset-0 bg-black/50 flex items-center justify-center opacity-0 hover:opacity-100 transition-opacity duration-300">
-                  <Camera size={32} className="text-white" />
-                </div>
-              )}
-            </div>
-            
-            {/* Edit Badge */}
-            {isEditing && (
-              <div className="absolute -bottom-2 -right-2 bg-gradient-to-r from-green-500 to-blue-500 text-white p-2 rounded-full shadow-lg">
-                <Edit3 size={16} />
-              </div>
-            )}
-          </div>
-
-          <input
-            ref={fileInputRef}
-            type="file"
-            accept="image/*"
-            onChange={handleImageChange}
-            className="hidden"
-          />
-
-          <h1 className="text-3xl lg:text-4xl font-bold text-gray-800 mb-2">
-            {isEditing ? (
-              <input
-                type="text"
-                value={profileData.name}
-                onChange={(e) => handleInputChange('name', e.target.value)}
-                className="text-center bg-transparent border-b-2 border-green-500 focus:outline-none focus:border-blue-500"
-              />
-            ) : (
-              profileData.name
-            )}
-          </h1>
-
-          <p className="text-lg text-gray-600 mb-4">
-            {isEditing ? (
-              <input
-                type="text"
-                value={profileData.occupation}
-                onChange={(e) => handleInputChange('occupation', e.target.value)}
-                className="text-center bg-transparent border-b-2 border-green-500 focus:outline-none focus:border-blue-500"
-              />
-            ) : (
-              profileData.occupation
-            )}
-          </p>
-
-          {/* Action Buttons */}
-          <div className="flex space-x-4 mb-6">
-            {isEditing ? (
-              <>
-                <button
-                  onClick={handleSaveClick}
-                  disabled={isLoading}
-                  className="bg-green-500 text-white px-6 py-3 rounded-lg font-semibold hover:bg-green-600 disabled:opacity-50 disabled:cursor-not-allowed transition-colors duration-200 flex items-center space-x-2"
-                >
-                  <Save size={20} />
-                  <span>Save Changes</span>
-                </button>
-                <button
-                  onClick={handleCancelClick}
-                  disabled={isLoading}
-                  className="bg-gray-500 text-white px-6 py-3 rounded-lg font-semibold hover:bg-gray-600 disabled:opacity-50 disabled:cursor-not-allowed transition-colors duration-200 flex items-center space-x-2"
-                >
-                  <X size={20} />
-                  <span>Cancel</span>
-                </button>
-              </>
-            ) : (
+    <div>
+      <div className="p-4 space-y-6 lg:p-6 lg:space-y-8">
+        <div className="bg-white rounded-lg shadow-md p-6">
+          <div className="flex justify-between items-start mb-4">
+            <h2 className="text-xl font-bold text-gray-800">Profile Information</h2>
+            {!isEditing && !isChangingPassword && (
               <button
-                onClick={handleEditClick}
-                className="bg-blue-500 text-white px-6 py-3 rounded-lg font-semibold hover:bg-blue-600 transition-colors duration-200 flex items-center space-x-2"
+                onClick={() => setIsEditing(true)}
+                className="flex items-center space-x-2 px-4 py-2 bg-green-500 text-white rounded-lg hover:bg-green-600 transition-colors"
               >
-                <Edit3 size={20} />
+                <Edit3 size={16} />
                 <span>Edit Profile</span>
               </button>
             )}
           </div>
 
-          {/* Action Buttons */}
-          <div className="flex justify-center space-x-4 mt-6">
-            <button
-              onClick={() => onViewChange && onViewChange('home')}
-              className="bg-green-500 text-white px-6 py-3 rounded-lg font-semibold hover:bg-green-600 transition-colors duration-200"
-            >
-              Back to Home
-            </button>
-            <button
-              onClick={onLogout}
-              className="bg-red-500 text-white px-6 py-3 rounded-lg font-semibold hover:bg-red-600 transition-colors duration-200"
-            >
-              Logout
-            </button>
-          </div>
-
-        </div>
-
-        {/* User Stats */}
-        <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-          <div className="card-premium p-6 text-center group hover-lift">
-            <div className="w-16 h-16 bg-gradient-to-br from-green-500 to-emerald-500 rounded-2xl flex items-center justify-center mx-auto mb-4 group-hover:scale-110 transition-transform duration-300">
-              <Award size={32} className="text-white" />
-            </div>
-            <div className="text-3xl font-bold text-gray-800 mb-2">{userStats.kindCoins}</div>
-            <div className="text-gray-600 font-medium">KindCoins</div>
-          </div>
-
-          <div className="card-premium p-6 text-center group hover-lift">
-            <div className="w-16 h-16 bg-gradient-to-br from-blue-500 to-cyan-500 rounded-2xl flex items-center justify-center mx-auto mb-4 group-hover:scale-110 transition-transform duration-300">
-              <Heart size={32} className="text-white" />
-            </div>
-            <div className="text-3xl font-bold text-gray-800 mb-2">{userStats.mealsRescued}</div>
-            <div className="text-gray-600 font-medium">Meals Rescued</div>
-          </div>
-
-          <div className="card-premium p-6 text-center group hover-lift">
-            <div className="w-16 h-16 bg-gradient-to-br from-purple-500 to-pink-500 rounded-2xl flex items-center justify-center mx-auto mb-4 group-hover:scale-110 transition-transform duration-300">
-              <Leaf size={32} className="text-white" />
-            </div>
-            <div className="text-3xl font-bold text-gray-800 mb-2">{userStats.co2Saved}kg</div>
-            <div className="text-gray-600 font-medium">CO₂ Saved</div>
-          </div>
-
-          <div className="card-premium p-6 text-center group hover-lift">
-            <div className="w-16 h-16 bg-gradient-to-br from-orange-500 to-red-500 rounded-2xl flex items-center justify-center mx-auto mb-4 group-hover:scale-110 transition-transform duration-300">
-              <TrendingUp size={32} className="text-white" />
-            </div>
-            <div className="text-3xl font-bold text-gray-800 mb-2">{userStats.streakDays}</div>
-            <div className="text-gray-600 font-medium">Day Streak</div>
-          </div>
-        </div>
-
-        {/* Community Rank */}
-        <div className="card-premium p-6">
-          <h3 className="text-lg font-semibold text-gray-800 mb-4 text-center">Community Rank</h3>
           <div className="text-center">
-            <div className={`inline-block bg-gradient-to-r ${getRankColor(userStats.communityRank)} text-white px-6 py-3 rounded-2xl font-bold text-xl shadow-lg`}>
-              {userStats.communityRank}
+            <div className="relative w-24 h-24 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-4 lg:w-32 lg:h-32 overflow-hidden">
+              {profileData.profile_image ? (
+                <img 
+                  src={profileData.profile_image} 
+                  alt="Profile" 
+                  className="w-full h-full object-cover"
+                />
+              ) : (
+                <User size={40} className="text-green-600 lg:w-14 lg:h-14" />
+              )}
+              {isEditing && (
+                <button className="absolute bottom-0 right-0 bg-green-500 text-white rounded-full p-1 hover:bg-green-600 transition-colors">
+                  <Camera size={12} />
+                </button>
+              )}
             </div>
-            <p className="text-gray-600 mt-3">Keep up the great work! You're making a real difference.</p>
-          </div>
-        </div>
 
-        {/* Profile Details */}
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-          {/* Personal Information */}
-          <div className="card-premium p-6">
-            <h3 className="text-lg font-semibold text-gray-800 mb-4 flex items-center">
-              <Users size={20} className="text-green-500 mr-2" />
-              Personal Information
-            </h3>
-            
-            <div className="space-y-4">
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">Location</label>
-                {isEditing ? (
-                  <input
-                    type="text"
-                    value={profileData.location}
-                    onChange={(e) => handleInputChange('location', e.target.value)}
-                    className="w-full p-3 border-2 border-gray-200 rounded-xl focus:border-green-500 focus:outline-none transition-colors duration-300"
-                    placeholder="Enter your location"
-                  />
-                ) : (
-                  <div className="flex items-center space-x-2 text-gray-600">
-                    <MapPin size={16} />
-                    <span>{profileData.location}</span>
+            {isEditing ? (
+              <div className="space-y-4">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">First Name</label>
+                    <input
+                      type="text"
+                      value={profileData.first_name}
+                      onChange={(e) => handleProfileChange('first_name', e.target.value)}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent"
+                    />
                   </div>
-                )}
-              </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Last Name</label>
+                    <input
+                      type="text"
+                      value={profileData.last_name}
+                      onChange={(e) => handleProfileChange('last_name', e.target.value)}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent"
+                    />
+                  </div>
+                </div>
 
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">Email</label>
-                {isEditing ? (
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Email</label>
                   <input
                     type="email"
                     value={profileData.email}
-                    onChange={(e) => handleInputChange('email', e.target.value)}
-                    className="w-full p-3 border-2 border-gray-200 rounded-xl focus:border-green-500 focus:outline-none transition-colors duration-300"
-                    placeholder="Enter your email"
+                    onChange={(e) => handleProfileChange('email', e.target.value)}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent"
                   />
-                ) : (
-                  <span className="text-gray-600">{profileData.email}</span>
-                )}
-              </div>
+                </div>
 
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">Phone</label>
-                {isEditing ? (
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Phone</label>
                   <input
                     type="tel"
                     value={profileData.phone}
-                    onChange={(e) => handleInputChange('phone', e.target.value)}
-                    className="w-full p-3 border-2 border-gray-200 rounded-xl focus:border-green-500 focus:outline-none transition-colors duration-300"
-                    placeholder="Enter your phone number"
+                    onChange={(e) => handleProfileChange('phone', e.target.value)}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent"
                   />
-                ) : (
-                  <span className="text-gray-600">{profileData.phone}</span>
-                )}
-              </div>
+                </div>
 
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">Join Date</label>
-                <div className="flex items-center space-x-2 text-gray-600">
-                  <Calendar size={16} />
-                  <span>{new Date(profileData.joinDate).toLocaleDateString()}</span>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Location</label>
+                  <input
+                    type="text"
+                    value={profileData.location}
+                    onChange={(e) => handleProfileChange('location', e.target.value)}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Business Name</label>
+                  <input
+                    type="text"
+                    value={profileData.business_name}
+                    onChange={(e) => handleProfileChange('business_name', e.target.value)}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent"
+                  />
+                </div>
+
+                <div className="flex space-x-3 pt-4">
+                  <button
+                    onClick={handleSaveProfile}
+                    disabled={isLoading}
+                    className="flex-1 flex items-center justify-center space-x-2 px-4 py-2 bg-green-500 text-white rounded-lg hover:bg-green-600 transition-colors disabled:opacity-50"
+                  >
+                    <Save size={16} />
+                    <span>{isLoading ? 'Saving...' : 'Save Changes'}</span>
+                  </button>
+                  <button
+                    onClick={handleCancelEdit}
+                    className="flex-1 flex items-center justify-center space-x-2 px-4 py-2 bg-gray-500 text-white rounded-lg hover:bg-gray-600 transition-colors"
+                  >
+                    <X size={16} />
+                    <span>Cancel</span>
+                  </button>
                 </div>
               </div>
-            </div>
+            ) : (
+              <div>
+                <h2 className="font-semibold text-gray-800 text-xl lg:text-2xl">
+                  {user?.first_name} {user?.last_name}
+                </h2>
+                <div className="space-y-2 mt-3">
+                  <div className="flex items-center justify-center space-x-2 text-gray-600">
+                    <Mail size={16} />
+                    <span className="text-sm lg:text-lg">{user?.email}</span>
+                  </div>
+                  {user?.phone && (
+                    <div className="flex items-center justify-center space-x-2 text-gray-600">
+                      <Phone size={16} />
+                      <span className="text-sm lg:text-lg">{user.phone}</span>
+                    </div>
+                  )}
+                  {user?.location && (
+                    <div className="flex items-center justify-center space-x-2 text-gray-600">
+                      <MapPin size={16} />
+                      <span className="text-sm lg:text-lg">{user.location}</span>
+                    </div>
+                  )}
+                  {user?.business_name && (
+                    <div className="flex items-center justify-center space-x-2 text-blue-600">
+                      <Building size={16} />
+                      <span className="text-sm lg:text-lg">{user.business_name}</span>
+                    </div>
+                  )}
+                </div>
+                <div className="flex items-center justify-center space-x-2 mt-4">
+                  <span className="text-green-600 bg-green-100 px-3 py-1 rounded-full text-sm lg:text-base lg:px-4 lg:py-2">
+                    Active Community Member
+                  </span>
+                  <span className="text-yellow-600 bg-yellow-100 px-3 py-1 rounded-full text-sm lg:text-base lg:px-4 lg:py-2">
+                    🌱 Eco Warrior
+                  </span>
+                </div>
+              </div>
+            )}
           </div>
+        </div>
 
-          {/* Preferences */}
-          <div className="card-premium p-6">
-            <h3 className="text-lg font-semibold text-gray-800 mb-4 flex items-center">
-              <Heart size={20} className="text-green-500 mr-2" />
-              Preferences
-            </h3>
-            
-            <div className="space-y-4">
+        <div className="bg-white rounded-lg shadow-md p-4">
+          <h3 className="font-semibold text-gray-800 mb-4 text-center lg:text-lg">
+            Your Environmental Impact
+          </h3>
+          <div className="grid grid-cols-4 gap-2 mb-6 lg:gap-4">
+            {Object.entries(periodLabels).map(([key, label]) => (
+              <button 
+                key={key} 
+                onClick={() => setSelectedPeriod(key)} 
+                className={`py-2 px-3 rounded-lg text-xs font-medium transition-colors lg:text-sm lg:py-3 lg:px-4 ${
+                  selectedPeriod === key 
+                    ? 'bg-green-600 text-white' 
+                    : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+                }`}
+              >
+                {label}
+              </button>
+            ))}
+          </div>
+          <div className="bg-gradient-to-r from-green-50 to-blue-50 rounded-lg p-4">
+            <h4 className="font-semibold text-gray-800 mb-3 text-center lg:text-lg">
+              {periodLabels[selectedPeriod]} Impact
+            </h4>
+            <div className="grid grid-cols-3 gap-4 text-center mb-4 lg:gap-6">
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">Dietary Preferences</label>
-                <div className="flex flex-wrap gap-2">
-                  {profileData.dietaryPreferences.map((pref, index) => (
-                    <span key={index} className="bg-green-100 text-green-800 px-3 py-1 rounded-full text-sm font-medium flex items-center space-x-2">
-                      <span>{pref}</span>
-                      {isEditing && (
-                        <button
-                          onClick={() => removeDietaryPreference(pref)}
-                          className="text-green-600 hover:text-green-800"
-                        >
-                          <X size={14} />
-                        </button>
-                      )}
-                    </span>
-                  ))}
-                  {isEditing && (
-                    <button
-                      onClick={() => addDietaryPreference('Vegan')}
-                      className="bg-gray-100 text-gray-600 px-3 py-1 rounded-full text-sm font-medium hover:bg-gray-200 transition-colors duration-300"
-                    >
-                      + Add
-                    </button>
-                  )}
+                <div className="font-bold text-green-600 text-xl lg:text-2xl">
+                  {currentData.meals}
                 </div>
+                <div className="text-gray-600 text-xs lg:text-sm">Meals Saved</div>
               </div>
-
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">Favorite Cuisines</label>
-                <div className="flex flex-wrap gap-2">
-                  {profileData.favoriteCuisines.map((cuisine, index) => (
-                    <span key={index} className="bg-blue-100 text-blue-800 px-3 py-1 rounded-full text-sm font-medium flex items-center space-x-2">
-                      <span>{cuisine}</span>
-                      {isEditing && (
-                        <button
-                          onClick={() => removeFavoriteCuisine(cuisine)}
-                          className="text-blue-600 hover:text-blue-800"
-                        >
-                          <X size={14} />
-                        </button>
-                      )}
-                    </span>
-                  ))}
-                  {isEditing && (
-                    <button
-                      onClick={() => addFavoriteCuisine('Thai')}
-                      className="bg-gray-100 text-gray-600 px-3 py-1 rounded-full text-sm font-medium hover:bg-gray-200 transition-colors duration-300"
-                    >
-                      + Add
-                    </button>
-                  )}
+                <div className="font-bold text-blue-600 text-xl lg:text-2xl">
+                  {currentData.co2}kg
                 </div>
+                <div className="text-gray-600 text-xs lg:text-sm">CO₂ Prevented</div>
               </div>
-
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">Bio</label>
-                {isEditing ? (
-                  <textarea
-                    value={profileData.bio}
-                    onChange={(e) => handleInputChange('bio', e.target.value)}
-                    rows="3"
-                    className="w-full p-3 border-2 border-gray-200 rounded-xl focus:border-green-500 focus:outline-none transition-colors duration-300 resize-none"
-                    placeholder="Tell us about yourself..."
-                  />
-                ) : (
-                  <p className="text-gray-600">{profileData.bio}</p>
-                )}
+                <div className="font-bold text-purple-600 text-xl lg:text-2xl">
+                  {currentData.kindcoins}
+                </div>
+                <div className="text-gray-600 text-xs lg:text-sm">KindCoins</div>
               </div>
             </div>
           </div>
         </div>
 
-        {/* Achievements */}
-        <div className="card-premium p-6">
-          <h3 className="text-lg font-semibold text-gray-800 mb-4 text-center">Recent Achievements</h3>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-            <div className="text-center p-4 bg-green-50 rounded-xl">
-              <div className="text-3xl mb-2">🎯</div>
-              <div className="font-semibold text-green-800">7-Day Streak</div>
-              <div className="text-sm text-green-600">Keep it up!</div>
-            </div>
-            <div className="text-center p-4 bg-blue-50 rounded-xl">
-              <div className="text-3xl mb-2">🌱</div>
-              <div className="font-semibold text-blue-800">Eco Warrior</div>
-              <div className="text-sm text-blue-600">8.4kg CO₂ saved</div>
-            </div>
-            <div className="text-center p-4 bg-purple-50 rounded-xl">
-              <div className="text-3xl mb-2">🤝</div>
-              <div className="font-semibold text-purple-800">Community Helper</div>
-              <div className="text-sm text-purple-600">3 donations made</div>
-            </div>
+        {/* Password Change Section */}
+        <div className="bg-white rounded-lg shadow-md p-6">
+          <div className="flex justify-between items-start mb-4">
+            <h3 className="text-xl font-bold text-gray-800">Security Settings</h3>
+            {!isChangingPassword && !isEditing && (
+              <button
+                onClick={() => setIsChangingPassword(true)}
+                className="flex items-center space-x-2 px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition-colors"
+              >
+                <Eye size={16} />
+                <span>Change Password</span>
+              </button>
+            )}
           </div>
+
+          {isChangingPassword ? (
+            <div className="space-y-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Current Password</label>
+                <div className="relative">
+                  <input
+                    type={showPassword ? "text" : "password"}
+                    value={passwordData.current_password}
+                    onChange={(e) => handlePasswordChange('current_password', e.target.value)}
+                    className="w-full px-3 py-2 pr-10 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowPassword(!showPassword)}
+                    className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-600"
+                  >
+                    {showPassword ? <EyeOff size={16} /> : <Eye size={16} />}
+                  </button>
+                </div>
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">New Password</label>
+                <div className="relative">
+                  <input
+                    type={showPassword ? "text" : "password"}
+                    value={passwordData.new_password}
+                    onChange={(e) => handlePasswordChange('new_password', e.target.value)}
+                    className="w-full px-3 py-2 pr-10 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowPassword(!showPassword)}
+                    className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-600"
+                  >
+                    {showPassword ? <EyeOff size={16} /> : <Eye size={16} />}
+                  </button>
+                </div>
+                <p className="text-xs text-gray-500 mt-1">Password must be at least 8 characters long</p>
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Confirm New Password</label>
+                <input
+                  type="password"
+                  value={passwordData.confirm_password}
+                  onChange={(e) => handlePasswordChange('confirm_password', e.target.value)}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                />
+              </div>
+
+              <div className="flex space-x-3 pt-4">
+                <button
+                  onClick={handleChangePassword}
+                  disabled={isLoading}
+                  className="flex-1 flex items-center justify-center space-x-2 px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition-colors disabled:opacity-50"
+                >
+                  <Save size={16} />
+                  <span>{isLoading ? 'Changing...' : 'Change Password'}</span>
+                </button>
+                <button
+                  onClick={handleCancelPasswordChange}
+                  className="flex-1 flex items-center justify-center space-x-2 px-4 py-2 bg-gray-500 text-white rounded-lg hover:bg-gray-600 transition-colors"
+                >
+                  <X size={16} />
+                  <span>Cancel</span>
+                </button>
+              </div>
+            </div>
+          ) : (
+            <div className="text-center text-gray-600">
+              <p className="text-sm">Keep your account secure with a strong password</p>
+            </div>
+          )}
         </div>
       </div>
     </div>

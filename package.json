@@ -15,7 +15,14 @@
     "eject": "react-scripts eject"
   },
   "devDependencies": {
-    "react-scripts": "latest"
+    "@testing-library/jest-dom": "^6.9.0",
+    "@testing-library/react": "^16.3.0",
+    "@testing-library/user-event": "^14.6.1",
+    "autoprefixer": "^10.4.21",
+    "jest-environment-jsdom": "^30.2.0",
+    "postcss": "^8.5.6",
+    "react-scripts": "latest",
+    "tailwindcss": "^4.1.13"
   },
   "browserslist": {
     "production": [

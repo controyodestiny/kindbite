@@ -36,10 +36,10 @@ class ChatSessionDetailView(APIView):
     """
     permission_classes = [permissions.IsAuthenticated]
 
-    def get(self, request, session_id):
+    def get(self, request, pk):
         try:
             session = ChatSession.objects.get(
-                id=session_id, 
+                id=pk, 
                 user=request.user, 
                 is_active=True
             )
@@ -51,11 +51,11 @@ class ChatSessionDetailView(APIView):
                 status=status.HTTP_404_NOT_FOUND
             )
 
-    def delete(self, request, session_id):
+    def delete(self, request, pk):
         """Delete (deactivate) a chat session."""
         try:
             session = ChatSession.objects.get(
-                id=session_id, 
+                id=pk, 
                 user=request.user, 
                 is_active=True
             )
@@ -102,10 +102,12 @@ class SendMessageView(APIView):
                 )
 
                 # Generate AI response
+                print(f"🤖 Generating AI response for: '{user_message}'")
                 ai_service = AIResponseService()
                 ai_response, response_time = ai_service.generate_response(
                     user_message, session
                 )
+                print(f"🤖 AI response generated in {response_time}ms: {ai_response[:100]}...")
 
                 # Create AI message
                 ai_msg = ChatSessionService.create_message(
@@ -129,8 +131,11 @@ class SendMessageView(APIView):
                 return Response(response_data, status=status.HTTP_201_CREATED)
 
         except Exception as e:
+            print(f"Error in SendMessageView: {e}")
+            import traceback
+            traceback.print_exc()
             return Response(
-                {'error': 'Failed to process message. Please try again.'},
+                {'error': f'Failed to process message: {str(e)}'},
                 status=status.HTTP_500_INTERNAL_SERVER_ERROR
             )
 
@@ -142,10 +147,10 @@ class ChatFeedbackView(APIView):
     """
     permission_classes = [permissions.IsAuthenticated]
 
-    def post(self, request, message_id):
+    def post(self, request, pk):
         try:
             message = ChatMessage.objects.get(
-                id=message_id,
+                id=pk,
                 message_type=ChatMessage.MessageType.AI,
                 session__user=request.user
             )

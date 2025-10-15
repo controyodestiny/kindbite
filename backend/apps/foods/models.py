@@ -45,9 +45,11 @@ class FoodListing(BaseModel):
     pickup_window_end = models.TimeField(help_text="Pickup window end time")
     pickup_date = models.DateField(help_text="Date when food can be picked up")
     
-    # Location (simplified for now)
-    location = models.CharField(max_length=300, help_text="Pickup location")
-    distance = models.CharField(max_length=50, help_text="Distance from user (calculated dynamically)")
+    # Location (Google Maps integration)
+    location = models.CharField(max_length=300, help_text="Pickup location address")
+    latitude = models.DecimalField(max_digits=9, decimal_places=6, null=True, blank=True, help_text="Latitude coordinate")
+    longitude = models.DecimalField(max_digits=9, decimal_places=6, null=True, blank=True, help_text="Longitude coordinate")
+    distance = models.DecimalField(max_digits=8, decimal_places=2, null=True, blank=True, help_text="Distance from user in kilometers")
     
     # Categorization
     provider_type = models.CharField(max_length=20, choices=ProviderType.choices)

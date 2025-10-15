@@ -1,8 +1,16 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import { Search, Filter, MapPin, Clock, Star, SortAsc, SortDesc, Heart, Zap } from 'lucide-react';
 import FoodCard from '../components/ui/FoodCard';
 
-const SearchView = ({ foodListings = [], onOpenFoodModal, onViewChange, onLikeToggle, onReserve, title = "Search Food" }) => {
+const SearchView = ({ 
+  foodListings = [], 
+  onFoodSelect, 
+  onViewChange, 
+  loading = false,
+  error = null,
+  onRefresh,
+  title = "Search Food" 
+}) => {
   const [searchTerm, setSearchTerm] = useState('');
   const [activeFilter, setActiveFilter] = useState('all');
   const [sortBy, setSortBy] = useState('distance');
@@ -11,9 +19,21 @@ const SearchView = ({ foodListings = [], onOpenFoodModal, onViewChange, onLikeTo
   const [maxDistance, setMaxDistance] = useState(10);
   const [showAdvancedFilters, setShowAdvancedFilters] = useState(false);
 
+  // Listen for refresh events from reservation modal
+  useEffect(() => {
+    const handleRefresh = () => {
+      if (onRefresh) {
+        onRefresh();
+      }
+    };
+
+    window.addEventListener('refreshFoodListings', handleRefresh);
+    return () => window.removeEventListener('refreshFoodListings', handleRefresh);
+  }, [onRefresh]);
+
   const handleFoodSelect = (food) => {
-    if (onOpenFoodModal && food) {
-      onOpenFoodModal(food);
+    if (onFoodSelect && food) {
+      onFoodSelect(food);
     }
   };
 
@@ -31,6 +51,7 @@ const SearchView = ({ foodListings = [], onOpenFoodModal, onViewChange, onLikeTo
       // Search matching with null checks
       const matchesSearch = !searchTerm || 
         (food.name && typeof food.name === 'string' && food.name.toLowerCase().includes(searchTerm.toLowerCase())) ||
+        (food.restaurant_name && typeof food.restaurant_name === 'string' && food.restaurant_name.toLowerCase().includes(searchTerm.toLowerCase())) ||
         (food.restaurant && typeof food.restaurant === 'string' && food.restaurant.toLowerCase().includes(searchTerm.toLowerCase())) ||
         (food.description && typeof food.description === 'string' && food.description.toLowerCase().includes(searchTerm.toLowerCase()));
 
@@ -39,10 +60,20 @@ const SearchView = ({ foodListings = [], onOpenFoodModal, onViewChange, onLikeTo
       try {
         switch (activeFilter) {
           case 'vegetarian':
-            matchesFilter = food.dietary && Array.isArray(food.dietary) && food.dietary.includes('Vegetarian');
+            matchesFilter = (food.dietary_info && Array.isArray(food.dietary_info) && food.dietary_info.includes('Vegetarian')) ||
+                           (food.dietary && Array.isArray(food.dietary) && food.dietary.includes('Vegetarian'));
             break;
           case 'halal':
-            matchesFilter = food.dietary && Array.isArray(food.dietary) && food.dietary.includes('Halal');
+            matchesFilter = (food.dietary_info && Array.isArray(food.dietary_info) && food.dietary_info.includes('Halal')) ||
+                           (food.dietary && Array.isArray(food.dietary) && food.dietary.includes('Halal'));
+            break;
+          case 'vegan':
+            matchesFilter = (food.dietary_info && Array.isArray(food.dietary_info) && food.dietary_info.includes('Vegan')) ||
+                           (food.dietary && Array.isArray(food.dietary) && food.dietary.includes('Vegan'));
+            break;
+          case 'gluten-free':
+            matchesFilter = (food.dietary_info && Array.isArray(food.dietary_info) && food.dietary_info.includes('Gluten-Free')) ||
+                           (food.dietary && Array.isArray(food.dietary) && food.dietary.includes('Gluten-Free'));
             break;
           case 'near-me':
             if (food.distance && typeof food.distance === 'string') {
@@ -53,13 +84,31 @@ const SearchView = ({ foodListings = [], onOpenFoodModal, onViewChange, onLikeTo
             }
             break;
           case 'free':
-            matchesFilter = food.discountedPrice === 0 || food.discountedPrice === '0';
+            const discountedPrice = food.discounted_price || food.discountedPrice || 0;
+            matchesFilter = discountedPrice === 0 || discountedPrice === '0' || discountedPrice === '0.00' || parseFloat(discountedPrice) === 0;
             break;
           case 'under-1000':
-            matchesFilter = food.discountedPrice && food.discountedPrice <= 1000;
+            const price1 = food.discounted_price || food.discountedPrice || 0;
+            matchesFilter = price1 && price1 <= 1000;
+            break;
+          case 'under-5000':
+            const price2 = food.discounted_price || food.discountedPrice || 0;
+            matchesFilter = price2 && price2 <= 5000;
             break;
           case 'high-rated':
             matchesFilter = food.rating && parseFloat(food.rating) >= 4.0;
+            break;
+          case 'restaurant':
+            matchesFilter = food.provider_type === 'restaurant' || food.provider === 'restaurant';
+            break;
+          case 'home-kitchen':
+            matchesFilter = food.provider_type === 'home' || food.provider === 'home';
+            break;
+          case 'bakery':
+            matchesFilter = food.provider_type === 'bakery' || food.provider === 'bakery';
+            break;
+          case 'supermarket':
+            matchesFilter = food.provider_type === 'supermarket' || food.provider === 'supermarket';
             break;
           default:
             matchesFilter = true;
@@ -70,7 +119,7 @@ const SearchView = ({ foodListings = [], onOpenFoodModal, onViewChange, onLikeTo
       }
 
       // Price range filter
-      const price = food.discountedPrice || 0;
+      const price = food.discounted_price || food.discountedPrice || 0;
       const matchesPrice = price >= priceRange[0] && price <= priceRange[1];
 
       return matchesSearch && matchesFilter && matchesPrice;
@@ -87,20 +136,20 @@ const SearchView = ({ foodListings = [], onOpenFoodModal, onViewChange, onLikeTo
             bValue = b.distance ? parseFloat(b.distance.match(/(\d+(?:\.\d+)?)/)?.[1] || 999) : 999;
             break;
           case 'price':
-            aValue = a.discountedPrice || 0;
-            bValue = b.discountedPrice || 0;
+            aValue = a.discounted_price || a.discountedPrice || 0;
+            bValue = b.discounted_price || b.discountedPrice || 0;
             break;
           case 'rating':
             aValue = a.rating ? parseFloat(a.rating) : 0;
             bValue = b.rating ? parseFloat(b.rating) : 0;
             break;
           case 'co2-saved':
-            aValue = a.co2Saved || 0;
-            bValue = b.co2Saved || 0;
+            aValue = a.co2_saved || a.co2Saved || 0;
+            bValue = b.co2_saved || b.co2Saved || 0;
             break;
           case 'pickup-time':
-            aValue = a.pickupWindow ? new Date().getTime() : 999999999999;
-            bValue = b.pickupWindow ? new Date().getTime() : 999999999999;
+            aValue = a.pickup_window || a.pickupWindow ? new Date().getTime() : 999999999999;
+            bValue = b.pickup_window || b.pickupWindow ? new Date().getTime() : 999999999999;
             break;
           default:
             aValue = 0;
@@ -123,12 +172,22 @@ const SearchView = ({ foodListings = [], onOpenFoodModal, onViewChange, onLikeTo
 
   const filters = [
     { id: 'all', label: 'All', icon: '🍽️', count: safeFoodListings.length },
-    { id: 'vegetarian', label: 'Vegetarian', icon: '🥬', count: safeFoodListings.filter(f => f?.dietary?.includes('Vegetarian')).length },
-    { id: 'halal', label: 'Halal', icon: '☪️', count: safeFoodListings.filter(f => f?.dietary?.includes('Halal')).length },
+    { id: 'free', label: 'Free', icon: '🎁', count: safeFoodListings.filter(f => {
+      const price = f?.discounted_price || f?.discountedPrice || 0;
+      return price === 0 || price === '0' || price === '0.00' || parseFloat(price) === 0;
+    }).length, highlight: true },
+    { id: 'vegetarian', label: 'Vegetarian', icon: '🥬', count: safeFoodListings.filter(f => f?.dietary_info?.includes('Vegetarian') || f?.dietary?.includes('Vegetarian')).length },
+    { id: 'halal', label: 'Halal', icon: '☪️', count: safeFoodListings.filter(f => f?.dietary_info?.includes('Halal') || f?.dietary?.includes('Halal')).length },
+    { id: 'vegan', label: 'Vegan', icon: '🌱', count: safeFoodListings.filter(f => f?.dietary_info?.includes('Vegan') || f?.dietary?.includes('Vegan')).length },
+    { id: 'gluten-free', label: 'Gluten-Free', icon: '🌾', count: safeFoodListings.filter(f => f?.dietary_info?.includes('Gluten-Free') || f?.dietary?.includes('Gluten-Free')).length },
     { id: 'near-me', label: 'Near Me', icon: '📍', count: safeFoodListings.filter(f => f?.distance && parseFloat(f.distance.match(/(\d+(?:\.\d+)?)/)?.[1] || 999) <= maxDistance).length },
-    { id: 'free', label: 'Free', icon: '🎁', count: safeFoodListings.filter(f => f?.discountedPrice === 0).length },
-    { id: 'under-1000', label: 'Under 1000', icon: '💰', count: safeFoodListings.filter(f => f?.discountedPrice && f.discountedPrice <= 1000).length },
-    { id: 'high-rated', label: 'Top Rated', icon: '⭐', count: safeFoodListings.filter(f => f?.rating && parseFloat(f.rating) >= 4.0).length }
+    { id: 'under-1000', label: 'Under 1000', icon: '💰', count: safeFoodListings.filter(f => (f?.discounted_price || f?.discountedPrice || 0) <= 1000).length },
+    { id: 'under-5000', label: 'Under 5000', icon: '💵', count: safeFoodListings.filter(f => (f?.discounted_price || f?.discountedPrice || 0) <= 5000).length },
+    { id: 'high-rated', label: 'Top Rated', icon: '⭐', count: safeFoodListings.filter(f => f?.rating && parseFloat(f.rating) >= 4.0).length },
+    { id: 'restaurant', label: 'Restaurants', icon: '🏪', count: safeFoodListings.filter(f => f?.provider_type === 'restaurant' || f?.provider === 'restaurant').length },
+    { id: 'home-kitchen', label: 'Home Kitchens', icon: '🏠', count: safeFoodListings.filter(f => f?.provider_type === 'home' || f?.provider === 'home').length },
+    { id: 'bakery', label: 'Bakeries', icon: '🥖', count: safeFoodListings.filter(f => f?.provider_type === 'bakery' || f?.provider === 'bakery').length },
+    { id: 'supermarket', label: 'Supermarkets', icon: '🛒', count: safeFoodListings.filter(f => f?.provider_type === 'supermarket' || f?.provider === 'supermarket').length }
   ];
 
   const sortOptions = [
@@ -161,12 +220,16 @@ const SearchView = ({ foodListings = [], onOpenFoodModal, onViewChange, onLikeTo
     try {
       return {
         total: filteredAndSortedFoods.length,
-        free: filteredAndSortedFoods.filter(f => f && (f.discountedPrice === 0 || f.discountedPrice === '0')).length,
-        vegetarian: filteredAndSortedFoods.filter(f => f && f.dietary && Array.isArray(f.dietary) && f.dietary.includes('Vegetarian')).length,
+        free: filteredAndSortedFoods.filter(f => {
+          if (!f) return false;
+          const price = f.discounted_price || f.discountedPrice || 0;
+          return price === 0 || price === '0' || price === '0.00' || parseFloat(price) === 0;
+        }).length,
+        vegetarian: filteredAndSortedFoods.filter(f => f && ((f.dietary_info && Array.isArray(f.dietary_info) && f.dietary_info.includes('Vegetarian')) || (f.dietary && Array.isArray(f.dietary) && f.dietary.includes('Vegetarian')))).length,
         topRated: filteredAndSortedFoods.filter(f => f && f.rating && !isNaN(parseFloat(f.rating)) && parseFloat(f.rating) >= 4).length,
         avgPrice: filteredAndSortedFoods.length > 0 ? 
-          Math.round(filteredAndSortedFoods.reduce((sum, f) => sum + (f.discountedPrice || 0), 0) / filteredAndSortedFoods.length) : 0,
-        totalCO2Saved: filteredAndSortedFoods.reduce((sum, f) => sum + (f.co2Saved || 0), 0)
+          Math.round(filteredAndSortedFoods.reduce((sum, f) => sum + (f.discounted_price || f.discountedPrice || 0), 0) / filteredAndSortedFoods.length) : 0,
+        totalCO2Saved: filteredAndSortedFoods.reduce((sum, f) => sum + (f.co2_saved || f.co2Saved || 0), 0)
       };
     } catch (error) {
       console.warn('Error calculating stats:', error);
@@ -295,9 +358,12 @@ const SearchView = ({ foodListings = [], onOpenFoodModal, onViewChange, onLikeTo
                 className={`px-4 py-2 rounded-lg font-medium transition-colors duration-200 ${
                   activeFilter === filter.id
                     ? 'bg-green-500 text-white'
+                    : filter.highlight
+                    ? 'bg-yellow-100 text-yellow-800 hover:bg-yellow-200 border-2 border-yellow-300'
                     : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
                 }`}
               >
+                <span className="mr-1">{filter.icon}</span>
                 {filter.label} ({filter.count})
               </button>
             ))}
@@ -321,16 +387,56 @@ const SearchView = ({ foodListings = [], onOpenFoodModal, onViewChange, onLikeTo
             )}
           </div>
 
+          {/* Free Foods Highlight Section */}
+          {stats.free > 0 && activeFilter !== 'free' && (
+            <div className="bg-gradient-to-r from-yellow-50 to-orange-50 border-2 border-yellow-200 rounded-xl p-4 mb-6">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center space-x-3">
+                  <div className="text-3xl">🎁</div>
+                  <div>
+                    <h3 className="text-lg font-bold text-yellow-800">
+                      {stats.free} Free Food{stats.free !== 1 ? 's' : ''} Available!
+                    </h3>
+                    <p className="text-yellow-700 text-sm">
+                      Don't miss out on completely free food items
+                    </p>
+                  </div>
+                </div>
+                <button
+                  onClick={() => setActiveFilter('free')}
+                  className="bg-yellow-500 hover:bg-yellow-600 text-white px-4 py-2 rounded-lg font-semibold transition-colors duration-200"
+                >
+                  View Free Foods
+                </button>
+              </div>
+            </div>
+          )}
+
           {/* Food Listings */}
-          {filteredAndSortedFoods.length > 0 ? (
+          {loading ? (
+            <div className="text-center py-12">
+              <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-green-500 mx-auto mb-4"></div>
+              <p className="text-gray-600">Loading food listings...</p>
+            </div>
+          ) : error ? (
+            <div className="text-center py-12">
+              <div className="text-6xl mb-4">❌</div>
+              <h3 className="text-lg font-semibold text-gray-800 mb-2">Error loading food</h3>
+              <p className="text-gray-600 mb-6">{error}</p>
+              <button 
+                onClick={onRefresh}
+                className="bg-green-500 text-white px-6 py-3 rounded-lg font-semibold hover:bg-green-600 transition-colors duration-200"
+              >
+                Try Again
+              </button>
+            </div>
+          ) : filteredAndSortedFoods.length > 0 ? (
             <div className="space-y-4">
               {filteredAndSortedFoods.map((food, index) => (
                 <FoodCard 
                   key={food?.id || `food-${index}`} 
                   food={food} 
                   onClick={handleFoodSelect}
-                  onLikeToggle={onLikeToggle}
-                  onReserve={onReserve}
                 />
               ))}
             </div>

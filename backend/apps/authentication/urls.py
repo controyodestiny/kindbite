@@ -1,31 +1,16 @@
 """
-Authentication URL patterns.
+Authentication URL patterns for KindBite application.
 """
 from django.urls import path
-from rest_framework_simplejwt.views import TokenRefreshView
-from .views import (
-    KindBiteTokenObtainPairView, register, logout_view,
-    change_password, password_reset_request, password_reset_confirm,
-    user_profile, auth_status
-)
+from . import views
 
 urlpatterns = [
-    # Authentication
-    path('login/', KindBiteTokenObtainPairView.as_view(), name='token_obtain_pair'),
-    path('token/refresh/', TokenRefreshView.as_view(), name='token_refresh'),
-    path('register/', register, name='register'),
-    path('logout/', logout_view, name='logout'),
-    
-    # Password management
-    path('password/change/', change_password, name='password_change'),
-    path('password/reset/', password_reset_request, name='password_reset_request'),
-    path('password/reset/confirm/', password_reset_confirm, name='password_reset_confirm'),
-    
-    # User info
-    path('me/', user_profile, name='user_profile'),
-    path('status/', auth_status, name='auth_status'),
+    # Authentication endpoints
+    path('login/', views.KindBiteTokenObtainPairView.as_view(), name='login'),
+    path('register/', views.register, name='register'),
+    path('logout/', views.logout_view, name='logout'),
+    path('token/refresh/', views.TokenRefreshView.as_view(), name='token-refresh'),
+    path('status/', views.auth_status, name='auth-status'),
+    path('me/', views.user_profile, name='current-user'),
+    path('change-password/', views.change_password, name='change-password'),
 ]
-
-
-
-
