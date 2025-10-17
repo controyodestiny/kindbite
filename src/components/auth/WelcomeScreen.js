@@ -1,7 +1,103 @@
-import React from 'react';
-import { Users, Heart, Leaf, Award } from 'lucide-react';
+import React, { useState } from 'react';
+import { Users, Heart, Leaf, Award, ChevronDown } from 'lucide-react';
 
 const WelcomeScreen = ({ onGetStarted, onLogin, onSignup }) => {
+  const [openKey, setOpenKey] = useState(null);
+
+  const toggle = (key) => {
+    setOpenKey((current) => (current === key ? null : key));
+  };
+
+  const ecosystemOptions = [
+    {
+      key: 'restaurants',
+      icon: '🍽️',
+      title: 'Restaurants',
+      summary: 'List surplus meals, set pickup times, and reduce daily waste.',
+      details: [
+        'Post discounted surplus meals in minutes',
+        'Control pickup windows and quantities',
+        'Earn KindCoins and community recognition',
+      ],
+    },
+    {
+      key: 'home_kitchens',
+      icon: '🏠',
+      title: 'Home Kitchens',
+      summary: 'Share extra portions safely with nearby neighbors.',
+      details: [
+        'Verified guidelines for safe sharing',
+        'Limit by day and portion size',
+        'Support local families and reduce waste',
+      ],
+    },
+    {
+      key: 'factories',
+      icon: '🏭',
+      title: 'Food Factories',
+      summary: 'Move excess inventory quickly to nonprofits and buyers.',
+      details: [
+        'Bulk listings via CSV/API',
+        'Automated pickup and logistics matching',
+        'Compliance-friendly donation receipts',
+      ],
+    },
+    {
+      key: 'supermarkets',
+      icon: '🛒',
+      title: 'Supermarkets',
+      summary: 'Clear near-expiry goods and reward eco‑friendly shoppers.',
+      details: [
+        'Dynamic markdowns for near-expiry items',
+        'Local pickup scheduling',
+        'Impact analytics and leaderboards',
+      ],
+    },
+    {
+      key: 'retail',
+      icon: '🏪',
+      title: 'Retail Shops',
+      summary: 'Bundle slow movers into value packs for the community.',
+      details: [
+        'Create limited-time bundles',
+        'Drive foot traffic with pickups',
+        'Earn KindCoins for sustainability',
+      ],
+    },
+    {
+      key: 'verifiers',
+      icon: '🩺',
+      title: 'Verifiers',
+      summary: 'Verify recipients and report safety/quality checks.',
+      details: [
+        'Simple verification flows',
+        'Anonymous issue reporting',
+        'Community trust building',
+      ],
+    },
+    {
+      key: 'ambassadors',
+      icon: '✅',
+      title: 'Ambassadors',
+      summary: 'Onboard new partners and host local food-rescue drives.',
+      details: [
+        'Invite and mentor local partners',
+        'Host monthly rescue events',
+        'Earn badges and KindCoins',
+      ],
+    },
+    {
+      key: 'donors',
+      icon: '💰',
+      title: 'Donors',
+      summary: 'Sponsor meals and CO₂ savings where they matter most.',
+      details: [
+        'Fund targeted rescue campaigns',
+        'Transparent impact reporting',
+        'Tax-friendly receipts (where applicable)',
+      ],
+    },
+  ];
   return (
     <div className="min-h-screen bg-gradient-to-br from-green-50 to-blue-50">
       {/* Header with Login/Signup buttons */}
@@ -70,39 +166,57 @@ const WelcomeScreen = ({ onGetStarted, onLogin, onSignup }) => {
 
           <div className="bg-white rounded-lg p-8 shadow-lg mb-8">
             <h2 className="text-2xl font-bold text-gray-800 mb-4">Join Our Ecosystem</h2>
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
-              <div className="flex items-center space-x-2">
-                <span className="text-2xl">🍽️</span>
-                <span>Restaurants</span>
-              </div>
-              <div className="flex items-center space-x-2">
-                <span className="text-2xl">🏠</span>
-                <span>Home Kitchens</span>
-              </div>
-              <div className="flex items-center space-x-2">
-                <span className="text-2xl">🏭</span>
-                <span>Food Factories</span>
-              </div>
-              <div className="flex items-center space-x-2">
-                <span className="text-2xl">🛒</span>
-                <span>Supermarkets</span>
-              </div>
-              <div className="flex items-center space-x-2">
-                <span className="text-2xl">🏪</span>
-                <span>Retail Shops</span>
-              </div>
-              <div className="flex items-center space-x-2">
-                <span className="text-2xl">🩺</span>
-                <span>Verifiers</span>
-              </div>
-              <div className="flex items-center space-x-2">
-                <span className="text-2xl">✅</span>
-                <span>Ambassadors</span>
-              </div>
-              <div className="flex items-center space-x-2">
-                <span className="text-2xl">💰</span>
-                <span>Donors</span>
-              </div>
+            <div className="flex flex-wrap gap-4 items-start">
+              {ecosystemOptions.map((opt) => {
+                const isOpen = openKey === opt.key;
+                return (
+                  <div key={opt.key} className="basis-full sm:basis-[calc((100%_-_1rem_*_2)_/_3)] flex-grow-0 flex-shrink-0">
+                    <div className="border rounded-lg">
+                    <button
+                      type="button"
+                      className={`w-full flex items-center justify-between p-4 text-left focus:outline-none focus:ring-2 focus:ring-green-500 rounded-lg ${
+                        isOpen ? 'bg-green-50' : 'bg-white'
+                      }`}
+                      aria-expanded={isOpen}
+                      aria-controls={`ecosystem-panel-${opt.key}`}
+                      onClick={() => toggle(opt.key)}
+                      onKeyDown={(e) => {
+                        if (e.key === 'Enter' || e.key === ' ') {
+                          e.preventDefault();
+                          toggle(opt.key);
+                        }
+                      }}
+                    >
+                      <span className="flex items-center space-x-3">
+                        <span className="text-2xl" aria-hidden="true">{opt.icon}</span>
+                        <span className="font-medium text-gray-800">{opt.title}</span>
+                      </span>
+                      <ChevronDown
+                        className={`w-5 h-5 text-gray-500 transition-transform duration-200 ${
+                          isOpen ? 'rotate-180' : ''
+                        }`}
+                        aria-hidden="true"
+                      />
+                    </button>
+                    <div
+                      id={`ecosystem-panel-${opt.key}`}
+                      className={`overflow-hidden transition-all duration-300 ${
+                        isOpen ? 'max-h-96 opacity-100' : 'max-h-0 opacity-0'
+                      }`}
+                    >
+                      <div className="px-4 pb-4 text-sm text-gray-600">
+                        <p className="mb-2">{opt.summary}</p>
+                        <ul className="list-disc pl-5 space-y-1">
+                          {opt.details.map((d, idx) => (
+                            <li key={idx}>{d}</li>
+                          ))}
+                        </ul>
+                      </div>
+                    </div>
+                    </div>
+                  </div>
+                );
+              })}
             </div>
           </div>
 
