@@ -125,3 +125,4 @@ class AIKnowledgeBaseSerializer(serializers.ModelSerializer):
 
 
 
+
