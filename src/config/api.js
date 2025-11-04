@@ -94,6 +94,11 @@ export const ENDPOINTS = {
     STATS: '/payments/stats/',
     KINDCOINS: '/payments/kindcoins/',
     KINDCOINS_TRANSACTIONS: '/payments/kindcoins/transactions/',
+    PESAPAL: {
+      INITIATE: '/payments/pesapal/initiate/',
+      IPN: '/payments/pesapal/ipn/',
+      STATUS: (orderTrackingId) => `/payments/pesapal/status/${orderTrackingId}/`,
+    },
   },
 };
 

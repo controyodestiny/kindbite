@@ -126,3 +126,12 @@ class AIKnowledgeBaseSerializer(serializers.ModelSerializer):
 
 
 
+
+
+
+
+
+
+
+
+

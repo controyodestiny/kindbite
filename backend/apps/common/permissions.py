@@ -96,3 +96,12 @@ class IsVerifiedUser(permissions.BasePermission):
 
 
 
+
+
+
+
+
+
+
+
+

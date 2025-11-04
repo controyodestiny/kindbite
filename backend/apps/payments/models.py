@@ -237,3 +237,25 @@ class KindCoinsTransaction(BaseModel):
 
     def __str__(self):
         return f"KindCoins {self.get_transaction_type_display()} - {self.user.get_full_name()}"
+
+
+class PesapalOrder(BaseModel):
+    """
+    Tracks Pesapal order details and status for a payment intent.
+    """
+    payment_intent = models.OneToOneField(
+        PaymentIntent,
+        on_delete=models.CASCADE,
+        related_name='pesapal_order'
+    )
+    order_tracking_id = models.CharField(max_length=255, unique=True)
+    merchant_reference = models.CharField(max_length=255)
+    payment_url = models.URLField(blank=True)
+    status = models.CharField(max_length=50, default='pending')
+    raw_response = models.JSONField(blank=True, default=dict)
+
+    class Meta:
+        db_table = 'pesapal_orders'
+
+    def __str__(self):
+        return f"Pesapal {self.order_tracking_id} for {self.payment_intent.user.get_full_name()}"

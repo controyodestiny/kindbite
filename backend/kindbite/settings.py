@@ -240,3 +240,15 @@ SIMPLE_JWT = {
 # OpenAI Configuration
 OPENAI_API_KEY = os.environ.get('OPENAI_API_KEY', '')
 OPENAI_MODEL = os.environ.get('OPENAI_MODEL', 'gpt-3.5-turbo')
+
+# Pesapal Configuration
+# Environment variables required:
+# PESAPAL_CONSUMER_KEY, PESAPAL_CONSUMER_SECRET, PESAPAL_CALLBACK_URL, PESAPAL_IPN_ID (optional)
+# PESAPAL_BASE_URL can override default sandbox/production endpoint
+PESAPAL = {
+    'CONSUMER_KEY': os.environ.get('PESAPAL_CONSUMER_KEY', ''),
+    'CONSUMER_SECRET': os.environ.get('PESAPAL_CONSUMER_SECRET', ''),
+    'CALLBACK_URL': os.environ.get('PESAPAL_CALLBACK_URL', 'https://kindbite.pythonanywhere.com/api/v1/payments/pesapal/callback/'),
+    'IPN_ID': os.environ.get('PESAPAL_IPN_ID', ''),
+    'BASE_URL': os.environ.get('PESAPAL_BASE_URL', 'https://pay.pesapal.com/v3'),
+}

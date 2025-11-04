@@ -23,4 +23,8 @@ urlpatterns = [
     path('stats/', views.payment_stats, name='payment-stats'),
     path('kindcoins/', views.kindcoins_balance, name='kindcoins-balance'),
     path('kindcoins/transactions/', views.KindCoinsTransactionView.as_view(), name='kindcoins-transactions'),
+    # Pesapal
+    path('pesapal/initiate/', views.pesapal_initiate, name='pesapal-initiate'),
+    path('pesapal/ipn/', views.pesapal_ipn, name='pesapal-ipn'),
+    path('pesapal/status/<str:order_tracking_id>/', views.pesapal_status, name='pesapal-status'),
 ]

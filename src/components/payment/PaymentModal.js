@@ -64,18 +64,14 @@ const PaymentModal = ({
         toast.success('Payment successful with KindCoins!');
         
       } else if (paymentMethod === 'card') {
-        if (!selectedCard) {
-          toast.error('Please select a payment method');
-          return;
-        }
-
-        const paymentIntent = await paymentService.createPaymentIntent(reservation);
-        const confirmedPayment = await paymentService.confirmPaymentIntent(
-          paymentIntent.id, 
-          selectedCard.id
-        );
-        
-        toast.success('Payment successful!');
+        const totalUGX = reservation.food_listing.discounted_price * reservation.quantity_reserved;
+        const { redirect_url } = await paymentService.initiatePesapalPayment({
+          amountUGX: totalUGX,
+          description: `Payment for ${reservation.food_listing.name}`,
+          metadata: { reservation_id: reservation.id }
+        });
+        window.location.href = redirect_url;
+        return; // Do not close modal yet; user will return after payment
       }
 
       onPaymentSuccess?.(reservation);
@@ -173,64 +169,21 @@ const PaymentModal = ({
                 }`}
                 onClick={() => setPaymentMethod('card')}
               >
-                <div className="flex items-center space-x-3">
-                  <CreditCard className="w-6 h-6 text-blue-500" />
-                  <div className="flex-1">
-                    <span className="font-medium text-gray-800">Credit/Debit Card</span>
-                    <p className="text-sm text-gray-600">Pay with your saved card</p>
-                  </div>
+              <div className="flex items-center space-x-3">
+                <CreditCard className="w-6 h-6 text-blue-500" />
+                <div className="flex-1">
+                  <span className="font-medium text-gray-800">Pay via Pesapal</span>
+                  <p className="text-sm text-gray-600">Secure card/mobile money checkout</p>
                 </div>
+              </div>
               </div>
             </div>
           </div>
 
           {/* Card Selection (if card payment) */}
           {paymentMethod === 'card' && (
-            <div>
-              <h4 className="font-medium text-gray-800 mb-2">Select Card</h4>
-              {isLoading ? (
-                <div className="flex items-center justify-center py-4">
-                  <Loader className="w-5 h-5 animate-spin text-gray-400" />
-                  <span className="ml-2 text-gray-600">Loading cards...</span>
-                </div>
-              ) : paymentMethods.length > 0 ? (
-                <div className="space-y-2">
-                  {paymentMethods.map((card) => (
-                    <div
-                      key={card.id}
-                      className={`border rounded-lg p-3 cursor-pointer transition-colors ${
-                        selectedCard?.id === card.id
-                          ? 'border-green-500 bg-green-50'
-                          : 'border-gray-200 hover:border-gray-300'
-                      }`}
-                      onClick={() => setSelectedCard(card)}
-                    >
-                      <div className="flex items-center space-x-3">
-                        <CreditCard className="w-5 h-5 text-gray-400" />
-                        <div className="flex-1">
-                          <p className="font-medium text-gray-800">
-                            •••• •••• •••• {card.last_four_digits}
-                          </p>
-                          <p className="text-sm text-gray-600">
-                            {card.brand.toUpperCase()} • Expires {card.exp_month}/{card.exp_year}
-                          </p>
-                        </div>
-                        {card.is_default && (
-                          <span className="text-xs bg-green-100 text-green-800 px-2 py-1 rounded">
-                            Default
-                          </span>
-                        )}
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              ) : (
-                <div className="text-center py-4 text-gray-500">
-                  <CreditCard className="w-8 h-8 mx-auto mb-2 text-gray-400" />
-                  <p className="text-sm">No saved cards found</p>
-                  <p className="text-xs text-gray-400">Add a card in your profile settings</p>
-                </div>
-              )}
+            <div className="text-sm text-gray-600 bg-blue-50 border border-blue-100 rounded p-3">
+              You will be redirected to Pesapal to complete your payment securely.
             </div>
           )}
 
@@ -273,7 +226,7 @@ const PaymentModal = ({
             </button>
             <button
               onClick={handlePayment}
-              disabled={isProcessing || (paymentMethod === 'kindcoins' && !canPayWithKindCoins) || (paymentMethod === 'card' && !selectedCard)}
+              disabled={isProcessing || (paymentMethod === 'kindcoins' && !canPayWithKindCoins)}
               className="flex-1 px-4 py-2 bg-green-500 text-white rounded-lg hover:bg-green-600 disabled:opacity-50 disabled:cursor-not-allowed transition-colors flex items-center justify-center space-x-2"
             >
               {isProcessing ? (
@@ -296,6 +249,14 @@ const PaymentModal = ({
 };
 
 export default PaymentModal;
+
+
+
+
+
+
+
+
 
 
 

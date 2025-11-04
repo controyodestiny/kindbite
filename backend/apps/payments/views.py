@@ -13,6 +13,8 @@ from django.utils import timezone
 from .models import (
     PaymentMethod, PaymentIntent, Transaction, Refund, KindCoinsTransaction
 )
+from .models import PesapalOrder
+from .services.pesapal import PesapalClient
 from .serializers import (
     PaymentMethodSerializer, PaymentMethodCreateSerializer,
     PaymentIntentSerializer, PaymentIntentCreateSerializer,
@@ -321,3 +323,111 @@ def kindcoins_balance(request):
         'balance': request.user.kind_coins,
         'user': request.user.get_full_name()
     })
+
+
+# Pesapal Integration
+@api_view(['POST'])
+@permission_classes([permissions.IsAuthenticated])
+def pesapal_initiate(request):
+    amount = request.data.get('amount')
+    currency = (request.data.get('currency') or 'UGX').upper()
+    description = request.data.get('description') or 'KindBite Order'
+    metadata = request.data.get('metadata') or {}
+    if not amount:
+        return Response({'error': 'amount is required'}, status=status.HTTP_400_BAD_REQUEST)
+
+    intent = PaymentIntent.objects.create(
+        user=request.user,
+        stripe_payment_intent_id=f"pesapal_{timezone.now().timestamp()}",
+        amount=int(amount),
+        currency=currency.lower(),
+        status=PaymentIntent.Status.PROCESSING,
+        description=description,
+        metadata=metadata,
+    )
+
+    client = PesapalClient()
+    merchant_reference = f"KB-{intent.id}-{int(timezone.now().timestamp())}"
+    customer = {
+        'email': request.user.email,
+        'first_name': getattr(request.user, 'first_name', '') or 'KindBite',
+        'last_name': getattr(request.user, 'last_name', '') or 'User',
+        'phone_number': metadata.get('phone_number', ''),
+        'country_code': metadata.get('country_code', 'KE'),
+    }
+    api_resp = client.create_order(
+        amount=round(intent.amount / 100.0, 2),
+        currency=currency,
+        description=description,
+        merchant_reference=merchant_reference,
+        customer=customer,
+    )
+    order_tracking_id = api_resp.get('order_tracking_id') or api_resp.get('orderTrackingId', '')
+    payment_url = api_resp.get('redirect_url') or api_resp.get('payment_url') or ''
+
+    PesapalOrder.objects.create(
+        payment_intent=intent,
+        order_tracking_id=order_tracking_id,
+        merchant_reference=merchant_reference,
+        payment_url=payment_url,
+        status='pending',
+        raw_response=api_resp,
+    )
+
+    return Response({
+        'payment_intent_id': intent.id,
+        'order_tracking_id': order_tracking_id,
+        'merchant_reference': merchant_reference,
+        'redirect_url': payment_url,
+    })
+
+
+@api_view(['GET', 'POST'])
+@permission_classes([permissions.AllowAny])
+def pesapal_ipn(request):
+    order_tracking_id = request.GET.get('OrderTrackingId') or request.GET.get('orderTrackingId') or request.data.get('orderTrackingId')
+    if not order_tracking_id:
+        return Response({'error': 'orderTrackingId missing'}, status=status.HTTP_400_BAD_REQUEST)
+    client = PesapalClient()
+    status_resp = client.get_transaction_status(order_tracking_id)
+    try:
+        pesapal_order = PesapalOrder.objects.get(order_tracking_id=order_tracking_id)
+    except PesapalOrder.DoesNotExist:
+        return Response({'error': 'order not found'}, status=status.HTTP_404_NOT_FOUND)
+
+    pesapal_order.status = status_resp.get('status', pesapal_order.status)
+    pesapal_order.raw_response = status_resp
+    pesapal_order.save()
+
+    intent = pesapal_order.payment_intent
+    status_text = (status_resp.get('status') or '').lower()
+    if status_text in ['completed', 'success', 'paid']:
+        intent.status = PaymentIntent.Status.SUCCEEDED
+        intent.save()
+        Transaction.objects.get_or_create(
+            payment_intent=intent,
+            defaults={
+                'user': intent.user,
+                'transaction_type': Transaction.TransactionType.FOOD_PURCHASE,
+                'status': Transaction.Status.COMPLETED,
+                'amount': intent.amount,
+                'currency': intent.currency,
+                'fee_amount': 0,
+                'net_amount': intent.amount,
+                'description': intent.description,
+                'metadata': {'provider': 'pesapal', 'order_tracking_id': order_tracking_id},
+            }
+        )
+    elif status_text in ['failed', 'cancelled', 'reversed']:
+        intent.status = PaymentIntent.Status.FAILED
+        intent.save()
+
+    return Response({'ok': True})
+
+
+@api_view(['GET'])
+@permission_classes([permissions.IsAuthenticated])
+def pesapal_status(request, order_tracking_id):
+    client = PesapalClient()
+    status_resp = client.get_transaction_status(order_tracking_id)
+    return Response(status_resp)

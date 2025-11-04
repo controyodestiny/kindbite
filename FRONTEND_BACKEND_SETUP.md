@@ -177,6 +177,39 @@ Solution: Check if tokens are being stored and sent correctly
 4. **Add Food Management** - Next feature to connect to backend
 5. **Deploy** - Ready for production deployment
 
+## 💳 Pesapal Integration
+
+### Backend env (`backend/.env`)
+```
+PESAPAL_CONSUMER_KEY=your_key
+PESAPAL_CONSUMER_SECRET=your_secret
+PESAPAL_CALLBACK_URL=http://localhost:8000/api/v1/payments/pesapal/ipn/
+# Optional if you have a registered IPN ID
+PESAPAL_IPN_ID=
+PESAPAL_BASE_URL=https://pay.pesapal.com/v3
+```
+
+### Endpoints
+- `POST /api/v1/payments/pesapal/initiate/` → returns `{ redirect_url }`
+- `GET|POST /api/v1/payments/pesapal/ipn/` → Pesapal notification handler
+- `GET /api/v1/payments/pesapal/status/<order_tracking_id>/` → fetch status
+
+### Frontend usage
+```js
+import paymentService from '@/services/paymentService';
+
+const { redirect_url } = await paymentService.initiatePesapalPayment({
+  amountUGX: totalAmountUGX,
+  description: 'KindBite Order',
+  metadata: { phone_number: '+256...' },
+});
+window.location.href = redirect_url;
+```
+
+### Notes
+- Amount is in UGX minor units (integer). We pass it directly; backend converts to decimal for Pesapal.
+- IPN endpoint updates transaction and intent status.
+
 ## 📞 **Need Help?**
 
 If you encounter issues:
@@ -187,6 +220,14 @@ If you encounter issues:
 4. **Network Tab** - Inspect API requests in browser dev tools
 
 Your KindBite app now has a fully functional frontend-backend connection! 🌟
+
+
+
+
+
+
+
+
 
 
 

@@ -245,6 +245,24 @@ class PaymentService {
   }
 
   /**
+   * Initiate Pesapal payment and return redirect URL
+   */
+  async initiatePesapalPayment({ amountUGX, description, metadata = {} }) {
+    const body = {
+      amount: amountUGX, // backend expects integer cents (UGX minor unit = 1)
+      currency: 'UGX',
+      description: description || 'KindBite Order',
+      metadata,
+    };
+    const resp = await apiService.request(ENDPOINTS.PAYMENTS.PESAPAL.INITIATE, {
+      method: 'POST',
+      body: JSON.stringify(body),
+      requiresAuth: true,
+    });
+    return resp; // { payment_intent_id, order_tracking_id, merchant_reference, redirect_url }
+  }
+
+  /**
    * Format currency for display
    */
   formatCurrency(amount, currency = 'UGX') {
@@ -272,6 +290,14 @@ class PaymentService {
 
 // Export singleton instance
 export default new PaymentService();
+
+
+
+
+
+
+
+
 
 
 
