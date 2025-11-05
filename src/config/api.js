@@ -5,7 +5,7 @@
 
 // API Configuration
 export const API_CONFIG = {
-  BASE_URL: process.env.REACT_APP_API_URL || 'https://kindbite.pythonanywhere.com/api/v1',
+  BASE_URL: process.env.REACT_APP_API_URL || 'https://kindbite.pythonanywhere.com/api',
   TIMEOUT: 10000, // 10 seconds
   HEADERS: {
     'Content-Type': 'application/json',
