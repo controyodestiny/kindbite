@@ -252,3 +252,14 @@ PESAPAL = {
     'IPN_ID': os.environ.get('PESAPAL_IPN_ID', ''),
     'BASE_URL': os.environ.get('PESAPAL_BASE_URL', 'https://pay.pesapal.com/v3'),
 }
+
+# Google OAuth Configuration
+# Environment variables required:
+# GOOGLE_CLIENT_ID, GOOGLE_CLIENT_SECRET, GOOGLE_REDIRECT_URI
+# Note: GOOGLE_REDIRECT_URI should point to your frontend URL (e.g., https://kindbite.pythonanywhere.com/)
+# The frontend will extract the authorization code and send it to the backend callback endpoint
+GOOGLE_OAUTH = {
+    'CLIENT_ID': os.environ.get('GOOGLE_CLIENT_ID', ''),
+    'CLIENT_SECRET': os.environ.get('GOOGLE_CLIENT_SECRET', ''),
+    'REDIRECT_URI': os.environ.get('GOOGLE_REDIRECT_URI', 'https://kindbite.pythonanywhere.com/'),
+}

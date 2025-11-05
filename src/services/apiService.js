@@ -219,6 +219,21 @@ class ApiService {
     });
   }
 
+  async getGoogleAuthUrl() {
+    return this.request(ENDPOINTS.AUTH.GOOGLE_AUTH_URL, {
+      method: 'GET',
+      requiresAuth: false,
+    });
+  }
+
+  async googleAuthCallback(code) {
+    return this.request(ENDPOINTS.AUTH.GOOGLE_CALLBACK, {
+      method: 'POST',
+      body: JSON.stringify({ code }),
+      requiresAuth: false,
+    });
+  }
+
   async updateProfile(profileData) {
     console.log('updateProfile called with:', profileData);
     const token = localStorage.getItem(STORAGE_KEYS.ACCESS_TOKEN);

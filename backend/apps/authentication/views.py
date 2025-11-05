@@ -2,6 +2,7 @@
 Authentication views for KindBite.
 Clean, secure authentication endpoints.
 """
+import os
 from rest_framework import status, permissions
 from rest_framework.decorators import api_view, permission_classes
 from rest_framework.response import Response
@@ -18,7 +19,7 @@ from apps.users.serializers import UserDetailSerializer
 from .serializers import (
     KindBiteTokenObtainPairSerializer, LoginSerializer, RegisterSerializer,
     PasswordChangeSerializer, PasswordResetRequestSerializer,
-    PasswordResetConfirmSerializer
+    PasswordResetConfirmSerializer, GoogleAuthSerializer
 )
 
 
@@ -223,6 +224,162 @@ def auth_status(request):
         'is_authenticated': False,
         'user': None
     })
+
+
+@api_view(['GET'])
+@permission_classes([permissions.AllowAny])
+def google_auth_url(request):
+    """
+    Get Google OAuth authorization URL.
+    """
+    import urllib.parse
+    
+    google_client_id = os.environ.get('GOOGLE_CLIENT_ID', '')
+    # Redirect to frontend, which will extract the code and send it to backend
+    redirect_uri = os.environ.get('GOOGLE_REDIRECT_URI', 'https://kindbite.pythonanywhere.com/')
+    
+    if not google_client_id:
+        return Response({
+            'error': 'Google OAuth is not configured.'
+        }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+    
+    # Build Google OAuth URL
+    params = {
+        'client_id': google_client_id,
+        'redirect_uri': redirect_uri,
+        'response_type': 'code',
+        'scope': 'openid email profile',
+        'access_type': 'offline',
+        'prompt': 'consent',
+    }
+    
+    auth_url = f"https://accounts.google.com/o/oauth2/v2/auth?{urllib.parse.urlencode(params)}"
+    
+    return Response({
+        'auth_url': auth_url
+    })
+
+
+@api_view(['POST'])
+@permission_classes([permissions.AllowAny])
+def google_auth_callback(request):
+    """
+    Handle Google OAuth callback and authenticate user.
+    """
+    import requests
+    
+    google_client_id = os.environ.get('GOOGLE_CLIENT_ID', '')
+    google_client_secret = os.environ.get('GOOGLE_CLIENT_SECRET', '')
+    # Note: This should match the redirect_uri used in google_auth_url
+    redirect_uri = os.environ.get('GOOGLE_REDIRECT_URI', 'https://kindbite.pythonanywhere.com/')
+    
+    if not google_client_id or not google_client_secret:
+        return Response({
+            'error': 'Google OAuth is not configured.'
+        }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+    
+    # Get authorization code from request
+    code = request.data.get('code')
+    if not code:
+        return Response({
+            'error': 'Authorization code is required.'
+        }, status=status.HTTP_400_BAD_REQUEST)
+    
+    # Exchange authorization code for access token
+    token_url = 'https://oauth2.googleapis.com/token'
+    token_data = {
+        'code': code,
+        'client_id': google_client_id,
+        'client_secret': google_client_secret,
+        'redirect_uri': redirect_uri,
+        'grant_type': 'authorization_code',
+    }
+    
+    try:
+        token_response = requests.post(token_url, data=token_data)
+        token_response.raise_for_status()
+        token_json = token_response.json()
+        access_token = token_json.get('access_token')
+        
+        if not access_token:
+            return Response({
+                'error': 'Failed to get access token from Google.'
+            }, status=status.HTTP_400_BAD_REQUEST)
+        
+        # Get user info from Google
+        user_info_url = 'https://www.googleapis.com/oauth2/v2/userinfo'
+        headers = {'Authorization': f'Bearer {access_token}'}
+        user_info_response = requests.get(user_info_url, headers=headers)
+        user_info_response.raise_for_status()
+        user_info = user_info_response.json()
+        
+        # Extract user information
+        email = user_info.get('email')
+        first_name = user_info.get('given_name', '')
+        last_name = user_info.get('family_name', '')
+        profile_picture = user_info.get('picture', '')
+        
+        if not email:
+            return Response({
+                'error': 'Email not provided by Google.'
+            }, status=status.HTTP_400_BAD_REQUEST)
+        
+        # Get or create user
+        try:
+            user = User.objects.get(email=email)
+            created = False
+        except User.DoesNotExist:
+            # Create new user using the manager (handles password properly)
+            # Generate a random password for OAuth users (they'll use Google to login)
+            import secrets
+            random_password = secrets.token_urlsafe(32)
+            user = User.objects.create_user(
+                email=email,
+                password=random_password,  # Random password, user won't use it
+                first_name=first_name,
+                last_name=last_name,
+                profile_image=profile_picture,
+                is_active=True,
+                phone='+0000000000',  # Default phone, user can update later
+                location='Unknown',  # Default location, user can update later
+            )
+            created = True
+        
+        # Update user info if user already exists
+        if not created:
+            if first_name and not user.first_name:
+                user.first_name = first_name
+            if last_name and not user.last_name:
+                user.last_name = last_name
+            if profile_picture and not user.profile_image:
+                user.profile_image = profile_picture
+            user.save()
+        
+        # Generate JWT tokens
+        refresh = RefreshToken.for_user(user)
+        
+        # Prepare response data
+        user_data = UserDetailSerializer(user).data
+        
+        return Response({
+            'message': f'Welcome {"back" if not created else "to KindBite"}, {user.get_full_name()}!',
+            'user': user_data,
+            'tokens': {
+                'refresh': str(refresh),
+                'access': str(refresh.access_token),
+            },
+            'created': created
+        }, status=status.HTTP_200_OK if not created else status.HTTP_201_CREATED)
+        
+    except requests.RequestException as e:
+        return Response({
+            'error': f'Failed to authenticate with Google: {str(e)}'
+        }, status=status.HTTP_400_BAD_REQUEST)
+    except Exception as e:
+        return Response({
+            'error': f'An error occurred: {str(e)}'
+        }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
 
 
 

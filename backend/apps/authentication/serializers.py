@@ -165,6 +165,20 @@ class PasswordResetConfirmSerializer(serializers.Serializer):
         return data
 
 
+class GoogleAuthSerializer(serializers.Serializer):
+    """
+    Serializer for Google OAuth authentication.
+    """
+    access_token = serializers.CharField(required=True)
+    
+    def validate_access_token(self, value):
+        """Validate Google access token."""
+        if not value:
+            raise serializers.ValidationError('Google access token is required.')
+        return value
+
+
+
 
 
 

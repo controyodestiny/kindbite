@@ -30,6 +30,8 @@ export const ENDPOINTS = {
     STATUS: '/auth/status/',
     ME: '/auth/me/',
     CHANGE_PASSWORD: '/auth/change-password/',
+    GOOGLE_AUTH_URL: '/auth/google/auth-url/',
+    GOOGLE_CALLBACK: '/auth/google/callback/',
   },
   USERS: {
     LIST: '/users/list/',

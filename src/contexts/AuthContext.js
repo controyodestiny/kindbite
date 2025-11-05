@@ -27,10 +27,68 @@ export const AuthProvider = ({ children }) => {
     toast = { success: () => {}, error: () => {}, info: () => {} };
   }
 
+  // Handle Google OAuth callback
+  useEffect(() => {
+    const handleGoogleCallback = async () => {
+      try {
+        // Check if we have a Google OAuth code in the URL
+        const urlParams = new URLSearchParams(window.location.search);
+        const code = urlParams.get('code');
+        
+        if (code) {
+          console.log('Google OAuth callback detected, processing...');
+          setIsLoading(true);
+          
+          try {
+            // Send code to backend
+            const response = await apiService.googleAuthCallback(code);
+            
+            // Store tokens and user data
+            if (response.tokens) {
+              localStorage.setItem(STORAGE_KEYS.ACCESS_TOKEN, response.tokens.access);
+              localStorage.setItem(STORAGE_KEYS.REFRESH_TOKEN, response.tokens.refresh);
+            }
+            if (response.user) {
+              localStorage.setItem(STORAGE_KEYS.USER, JSON.stringify(response.user));
+              setUser(response.user);
+            }
+            
+            setIsAuthenticated(true);
+            setupTokenRefresh();
+            
+            // Clean up URL
+            window.history.replaceState({}, document.title, window.location.pathname);
+            
+            toast.success(response.message || 'Successfully signed in with Google!');
+          } catch (error) {
+            console.error('Google OAuth callback error:', error);
+            toast.error(error.message || 'Failed to sign in with Google. Please try again.');
+            // Clean up URL even on error
+            window.history.replaceState({}, document.title, window.location.pathname);
+          } finally {
+            setIsLoading(false);
+          }
+        }
+      } catch (error) {
+        console.error('Error handling Google callback:', error);
+      }
+    };
+
+    handleGoogleCallback();
+  }, []);
+
   // Check for existing session on app load
   useEffect(() => {
     const checkAuthStatus = async () => {
       try {
+        // Skip if we're handling Google OAuth callback
+        const urlParams = new URLSearchParams(window.location.search);
+        if (urlParams.get('code')) {
+          // Google OAuth callback will be handled by the other useEffect
+          setIsLoading(false);
+          return;
+        }
+        
         const savedUser = localStorage.getItem(STORAGE_KEYS.USER);
         const accessToken = localStorage.getItem(STORAGE_KEYS.ACCESS_TOKEN);
         const refreshToken = localStorage.getItem(STORAGE_KEYS.REFRESH_TOKEN);
