@@ -49,7 +49,7 @@ graph TD
     DASHBOARD --> GVE
     DASHBOARD --> AC
 
-    DASHBOARD -->|API Calls (tenant_id)| GW
+    DASHBOARD -->|API Calls with Tenant ID| GW
     GW -->|Validate| OAUTH
     
     %% Ingestion Flow
@@ -66,7 +66,7 @@ graph TD
     AC --> GW
     GW --> GRAPH_RAG
     GRAPH_RAG -->|Semantic Search| VEC
-    GRAPH_RAG -->|Graph Walk (Pathways)| TRAVERSE
+    GRAPH_RAG -->|Graph Walk Pathways| TRAVERSE
     TRAVERSE --> NEO
     
     %% AI Final Output
